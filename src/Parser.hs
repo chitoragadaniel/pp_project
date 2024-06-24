@@ -31,21 +31,21 @@ reserved = Token.reserved lexer
 
 
 data Program  = Program [Instr]
-data Instr    = Assign String Expr
+data Instr    = Assign String Expr            -- Assigning a variable
               | While Expr Program
               | IfElse Expr Program Program
               | If Expr Program
               | Print [Printable]
 
 data Expr     = BinOp Op Expr Expr
-              | Boolean String
-              | Val Int
-              | Var String
+              | Boolean String                -- A boolean value; either "true" or "false"
+              | Val Int                       -- A integer
+              | Var String                    -- Using a variable
 
 data Printable = PrintStr String | PrintExp Expr
-data Op = Add | Sub | Mult | Pow
-        | EQS | LTS | LTES
-        | And | Or | Not
+data Op = Add | Sub | Mult | Pow  -- Integer operators
+        | EQS | LTS | LTES        -- Comparison operators
+        | And | Or | Not          -- Logical operators
 
 --data Instr    = AssignB String ExprB            -- bool b = true
 --              | AssignI String ExprI            -- int a = 10
