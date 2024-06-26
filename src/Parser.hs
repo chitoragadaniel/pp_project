@@ -31,8 +31,8 @@ reserved = Token.reserved lexer
 
 
 data Program  = Program [Instr]
-data Instr    = DeclLocal String String Expr          -- Declare a local variable; int i = 0
-              | DeclShared String String String Expr  -- Declare a shared variable; shared int i = o
+data Instr    = DeclLocal Type String Expr          -- Declare a local variable; int i = 0
+              | DeclShared Type String Expr         -- Declare a shared variable; shared int i = o
               | Assign String Expr                    -- Assign a value to a variable; i = 0
               | While Expr Program
               | IfElse Expr Program Program
@@ -40,7 +40,6 @@ data Instr    = DeclLocal String String Expr          -- Declare a local variabl
               | Print [Printable]
 
 data Expr     = BinOp Op Expr Expr
-              | Boolean String                        -- A boolean value; either "true" or "false"
               | Val Int                               -- A integer
               | Var String                            -- Using a variable
 
@@ -48,6 +47,7 @@ data Printable = PrintStr String | PrintExp Expr
 data Op = AddS | SubS | MultS | PowS                  -- Integer operators
         | EQS | LTS | LTES                            -- Comparison operators
         | AndS | OrS | NotS                           -- Logical operators
+data Type = TypeInt | TypeBool
 
 
 
