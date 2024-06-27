@@ -1,5 +1,4 @@
 module Parser where
-
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
@@ -30,24 +29,27 @@ reserved :: String -> Parser ()
 reserved = Token.reserved lexer
 
 
-data Program  = Program [Instr]
-data Instr    = DeclLocal Type String Expr          -- Declare a local variable; int i = 0
-              | DeclShared Type String Expr         -- Declare a shared variable; shared int i = o
+data Program  = Program [Instr] deriving Show
+data Instr    = Decl Scope Type String Expr           -- Declare a variable; Local: int i = 0; Shared: shared int i = o
               | Assign String Expr                    -- Assign a value to a variable; i = 0
               | While Expr Program
               | IfElse Expr Program Program
               | If Expr Program
-              | Print [Printable]
-
+              | Print Expr
+              deriving Show
+              
 data Expr     = BinOp Op Expr Expr
               | Val Int                               -- A integer
               | Var String                            -- Using a variable
+              deriving Show
 
-data Printable = PrintStr String | PrintExp Expr
+
 data Op = AddS | SubS | MultS | PowS                  -- Integer operators
         | EQS | LTS | LTES                            -- Comparison operators
         | AndS | OrS | NotS                           -- Logical operators
-data Type = TypeInt | TypeBool
+        deriving Show
+data Type = TypeInt | TypeBool deriving Show
+data Scope = Local | Shared deriving (Show, Eq)
 
 
 
