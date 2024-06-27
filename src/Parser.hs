@@ -7,8 +7,8 @@ languageDef =
   emptyDef { Token.commentLine      = "//"
            , Token.identStart       = letter
            , Token.identLetter      = alphaNum
-           , Token.reservedNames    = [ "if", "else", "while", "true", "false", "int", "bool"]
-           , Token.reservedOpNames  = [ "=", "+", "++", "-", "*", "^", "==", "and", "or", "not"]
+           , Token.reservedNames    = [ "if", "else", "while", "true", "false", "int", "bool", "shared"]
+           , Token.reservedOpNames  = [ "=", "+", "-", "*", "^", "==", "and", "or", "not"]
            }
 
 lexer = Token.makeTokenParser languageDef
