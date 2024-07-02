@@ -8,7 +8,7 @@ languageDef =
            , Token.identStart       = letter
            , Token.identLetter      = alphaNum
            , Token.reservedNames    = [ "if", "else", "while", "true", "false", "int", "bool", "shared", "fork", "lock", "unlock"]
-           , Token.reservedOpNames  = [ "=", "+", "-", "*", "^", "==", "and", "or", "not"]
+           , Token.reservedOpNames  = [ "=", "+", "-", "*", "^", "==", "<", "<=", "and", "or", "not"]
            }
 
 lexer = Token.makeTokenParser languageDef
@@ -16,8 +16,8 @@ lexer = Token.makeTokenParser languageDef
 identifier :: Parser String
 identifier = Token.identifier lexer
 
-integer :: Parser Integer
-integer = Token.integer lexer
+integer :: Parser Int
+integer = fromInteger <$> Token.integer lexer
 
 parens :: Parser a -> Parser a
 parens = Token.parens lexer
@@ -46,7 +46,7 @@ data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Loc
               deriving Show
               
 data Expr     = BinOp Op Expr Expr
-              | Val Int                               -- A integer
+              | Val Int                           -- A integer
               | Var String                            -- Using a variable
               deriving Show
 
@@ -84,15 +84,15 @@ data Scope = Local | Shared deriving (Show, Eq)
 
 -- Parser for a program
 parseProgram :: Parser Program
-parseProgram = (Program <$> many parseInstr)
+parseProgram =  many parseInstr
 
 -- Parser for a single instruction
 parseInstr :: Parser Instr
 parseInstr = try (Decl <$> parseScope
                        <*> parseType
                        <*> identifier
-                       <*> (symbol "=" *> parseExpr))
-           <|> try (Assign <$> identifier <*> (symbol "=" *> parseExpr))
+                       <*> (optionMaybe (reserved "=" *> parseExpr)))
+           <|> try (Assign <$> identifier <*> (reserved "=" *> parseExpr))
            <|> try (While <$> (reserved "while" *> (parens parseExpr))
                           <*> parseProgram)
            <|> try (IfElse <$> (reserved "if" *> (parens parseExpr))
@@ -100,7 +100,11 @@ parseInstr = try (Decl <$> parseScope
                            <*> (reserved "else" *> (braces parseProgram)))
            <|> try (If <$> (reserved "if" *> (parens parseExpr))
                        <*> (braces parseProgram))
-           <|> Print <$> (reserved "print" *> (parens parseExpr))
+           <|> try (Print <$> (reserved "print" *> (parens parseExpr)))
+           <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> (braces parseProgram))
+           <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
+           <|> try (Unlock <$> (reserved "lock" *> (parens identifier)))
+           <|> NotOp <$> (reserved "not" *> parseExpr)
 
 parseExpr :: Parser Expr
 parseExpr = try ((\left operator right -> (BinOp operator left right)) <$> term <*> parseOp <*> parseExpr)
@@ -116,16 +120,17 @@ parseOp :: Parser Op
 parseOp = try (reserved "+" >> pure AddS)
     <|> try (reserved "-" >> pure SubS)
     <|> try (reserved "*" >> pure MultS)
-    <|> try (reserved "^" >> pure PowS)
     <|> try (reserved "==" >> pure EQS)
+    <|> try (reserved "<" >> pure LTS)
+    <|> try (reserved "<=" >> pure LTES)
     <|> try (reserved "and" >> pure AndS)
-    <|> try (reserved "or" >> pure OrS)
-    <|> (reserved "not" >> pure NotS)
+    <|> (reserved "or" >> pure OrS)
 
 -- Parser for type
 parseType :: Parser Type
-parseType = try(reserved "int" >> pure TypeInt)
-         <|> (reserved "bool" >> pure TypeBool)
+parseType = try (reserved "int" >> pure TypeInt)
+         <|> try (reserved "bool" >> pure TypeBool)
+         <|> (reserved "lock" >> pure TypeLock)
 
 -- Parser for scope
 parseScope :: Parser Scope
