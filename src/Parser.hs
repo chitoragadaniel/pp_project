@@ -42,11 +42,11 @@ data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Loc
               | Fork (Maybe Int) Program                -- Starts a new thread; fork {}; (Maybe Int) is the number of the thread. While parsing is Nothing, in elaboration is counted
               | Lock String                             -- Locks a lock; lock(i)
               | Unlock String                           -- Unlocks a lock; unlock(i)
-              | NotOp Expr
               deriving Show
               
 data Expr     = BinOp Op Expr Expr
-              | Val Int                           -- A integer
+              | NotOp Expr
+              | Val Int                               -- A integer
               | Var String                            -- Using a variable
               deriving Show
 
@@ -91,40 +91,75 @@ parseInstr :: Parser Instr
 parseInstr = try (Decl <$> parseScope
                        <*> parseType
                        <*> identifier
-                       <*> (optionMaybe (reserved "=" *> parseExpr)))
-           <|> try (Assign <$> identifier <*> (reserved "=" *> parseExpr))
-           <|> try (While <$> (reserved "while" *> (parens parseExpr))
+                       <*> (optionMaybe (reserved "=" *> parseLogicalExpr)))
+           <|> try (Assign <$> identifier <*> (reserved "=" *> parseLogicalExpr))
+           <|> try (While <$> (reserved "while" *> (parens parseLogicalExpr))
                           <*> parseProgram)
-           <|> try (IfElse <$> (reserved "if" *> (parens parseExpr))
+           <|> try (IfElse <$> (reserved "if" *> (parens parseLogicalExpr))
                            <*> (braces parseProgram)
                            <*> (reserved "else" *> (braces parseProgram)))
-           <|> try (If <$> (reserved "if" *> (parens parseExpr))
+           <|> try (If <$> (reserved "if" *> (parens parseLogicalExpr))
                        <*> (braces parseProgram))
-           <|> try (Print <$> (reserved "print" *> (parens parseExpr)))
+           <|> try (Print <$> (reserved "print" *> (parens parseLogicalExpr)))
            <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> (braces parseProgram))
            <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
            <|> try (Unlock <$> (reserved "lock" *> (parens identifier)))
-           <|> NotOp <$> (reserved "not" *> parseExpr)
+
+parseLogicalExpr :: Parser Expr
+parseLogicalExpr = try (binOp <$> parseComparisonExpr <*> parseAndOp <*> parseLogicalExpr)
+        <|> try (binOp <$> parseComparisonExpr <*> parseOrOp <*> parseLogicalExpr)
+        <|> try (parseComparisonExpr)
+        <|> (parens parseComparisonExpr)
+
+parseComparisonExpr :: Parser Expr
+parseComparisonExpr = try (binOp <$> parseMultExpr <*> parseEQOp <*> parseMultExpr)
+         <|> try (binOp <$> parseMultExpr <*> parseLTESOp <*> parseMultExpr)
+         <|> try (binOp <$> parseMultExpr <*> parseLTSOp <*> parseMultExpr)
+         <|> try (parseMultExpr)
+         <|> (parens parseMultExpr)
+
+parseMultExpr :: Parser Expr
+parseMultExpr = try (binOp <$> parseAddSubExpr <*> parseMultOp <*> parseMultExpr)
+         <|> try (parseAddSubExpr)
+         <|> (parens parseAddSubExpr)
+
+parseAddSubExpr :: Parser Expr
+parseAddSubExpr = try (binOp <$> parseExpr <*> parseAddOp <*> parseAddSubExpr)
+         <|> try (binOp <$> parseExpr <*> parseSubOp <*> parseAddSubExpr)
+         <|> try (NotOp <$> (reserved "not" *> parseAddSubExpr))
+         <|> try (parseExpr)
+         <|> (parens parseExpr)
 
 parseExpr :: Parser Expr
-parseExpr = try ((\left operator right -> (BinOp operator left right)) <$> term <*> parseOp <*> parseExpr)
-        <|> try (Val <$> integer)
+parseExpr = try (Val <$> integer)
         <|> try (reserved "true" >> return (Val 1))
         <|> try (reserved "false" >> return (Val 0))
         <|> Var <$> identifier
-        where
-            term = try (Val <$> integer) <|> (Var <$> identifier) --To avoid infinite recursion
 
--- Parser for operators
-parseOp :: Parser Op
-parseOp = try (reserved "+" >> pure AddS)
-    <|> try (reserved "-" >> pure SubS)
-    <|> try (reserved "*" >> pure MultS)
-    <|> try (reserved "==" >> pure EQS)
-    <|> try (reserved "<" >> pure LTS)
-    <|> try (reserved "<=" >> pure LTES)
-    <|> try (reserved "and" >> pure AndS)
-    <|> (reserved "or" >> pure OrS)
+-- Parsers for operators
+parseAddOp :: Parser Op
+parseAddOp = reserved "+" >> pure AddS
+
+parseSubOp :: Parser Op
+parseSubOp = reserved "-" >> pure SubS
+
+parseMultOp :: Parser Op
+parseMultOp = reserved "*" >> pure MultS
+
+parseEQOp :: Parser Op
+parseEQOp = reserved "==" >> pure EQS
+
+parseLTSOp :: Parser Op
+parseLTSOp = reserved "<" >> pure LTS
+
+parseLTESOp :: Parser Op
+parseLTESOp = reserved "<=" >> pure LTES
+
+parseAndOp :: Parser Op
+parseAndOp = reserved "and" >> pure AndS
+
+parseOrOp :: Parser Op
+parseOrOp = reserved "or" >> pure OrS
 
 -- Parser for type
 parseType :: Parser Type
@@ -136,3 +171,7 @@ parseType = try (reserved "int" >> pure TypeInt)
 parseScope :: Parser Scope
 parseScope = try (reserved "shared" >> pure Shared)
           <|> pure Local
+
+-- Helper function that takes an expression an operator and another expression and constructs a new expression.
+binOp :: Expr -> Op -> Expr -> Expr
+binOp left operator right = BinOp operator left right
