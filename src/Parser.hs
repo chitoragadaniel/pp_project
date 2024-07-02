@@ -22,12 +22,14 @@ integer = Token.integer lexer
 parens :: Parser a -> Parser a
 parens = Token.parens lexer
 
+braces :: Parser a -> Parser a
+braces = Token.braces lexer
+
 symbol :: String -> Parser String
 symbol = Token.symbol lexer
 
 reserved :: String -> Parser ()
 reserved = Token.reserved lexer
-
 
 data Program  = Program [Instr] deriving Show
 data Instr    = Decl Scope Type String Expr           -- Declare a variable; Local: int i = 0; Shared: shared int i = o
@@ -37,9 +39,9 @@ data Instr    = Decl Scope Type String Expr           -- Declare a variable; Loc
               | If Expr Program
               | Print Expr
               deriving Show
-              
+
 data Expr     = BinOp Op Expr Expr
-              | Val Int                               -- A integer
+              | Val Integer                               -- A integer
               | Var String                            -- Using a variable
               deriving Show
 
@@ -74,3 +76,53 @@ data Scope = Local | Shared deriving (Show, Eq)
 --data OpB = And | Or | Not
 --data OpC = EQS | LTS | LTES
 --data OpI = Add | Sub | Mult | Pow
+
+-- Parser for a program
+parseProgram :: Parser Program
+parseProgram = (Program <$> many parseInstr)
+
+-- Parser for a single instruction
+parseInstr :: Parser Instr
+parseInstr = try (Decl <$> parseScope
+                       <*> parseType
+                       <*> identifier
+                       <*> (symbol "=" *> parseExpr))
+           <|> try (Assign <$> identifier <*> (symbol "=" *> parseExpr))
+           <|> try (While <$> (reserved "while" *> (parens parseExpr))
+                          <*> parseProgram)
+           <|> try (IfElse <$> (reserved "if" *> (parens parseExpr))
+                           <*> (braces parseProgram)
+                           <*> (reserved "else" *> (braces parseProgram)))
+           <|> try (If <$> (reserved "if" *> (parens parseExpr))
+                       <*> (braces parseProgram))
+           <|> Print <$> (reserved "print" *> (parens parseExpr))
+
+parseExpr :: Parser Expr
+parseExpr = try ((\left operator right -> (BinOp operator left right)) <$> term <*> parseOp <*> parseExpr)
+        <|> try (Val <$> integer)
+        <|> try (reserved "true" >> return (Val 1))
+        <|> try (reserved "false" >> return (Val 0))
+        <|> Var <$> identifier
+        where
+            term = try (Val <$> integer) <|> (Var <$> identifier) --To avoid infinite recursion
+
+-- Parser for operators
+parseOp :: Parser Op
+parseOp = try (reserved "+" >> pure AddS)
+    <|> try (reserved "-" >> pure SubS)
+    <|> try (reserved "*" >> pure MultS)
+    <|> try (reserved "^" >> pure PowS)
+    <|> try (reserved "==" >> pure EQS)
+    <|> try (reserved "and" >> pure AndS)
+    <|> try (reserved "or" >> pure OrS)
+    <|> (reserved "not" >> pure NotS)
+
+-- Parser for type
+parseType :: Parser Type
+parseType = try(reserved "int" >> pure TypeInt)
+         <|> (reserved "bool" >> pure TypeBool)
+
+-- Parser for scope
+parseScope :: Parser Scope
+parseScope = try (reserved "shared" >> pure Shared)
+          <|> pure Local
