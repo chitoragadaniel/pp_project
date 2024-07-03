@@ -9,8 +9,25 @@ checkDuplicates instrs = checkInstrs instrs instrs []
 checkInstrs :: Program -> [Instr] -> [String] -> Either String Program
 checkInstrs prog [] _ = Right prog
 checkInstrs prog (Decl _ _ var _ : rest) vars
-      | elem var vars = Left $ "Duplicate declaration of variable: " ++ var
-      | otherwise = checkInstrs prog rest (var : vars)
+    | elem var vars = Left $ "Duplicate declaration of variable: " ++ var
+    | otherwise = checkInstrs prog rest (var : vars)
+checkInstrs prog (While _ whileProg : rest) vars =
+    case checkInstrs whileProg whileProg vars of
+        Left err -> Left err
+        Right _ -> checkInstrs prog rest vars
+checkInstrs prog (IfElse _ thenProg elseProg : rest) vars =
+    case (checkInstrs thenProg thenProg vars, checkInstrs elseProg elseProg vars) of
+        (Left err, _) -> Left err
+        (_, Left err) -> Left err
+        (Right _, Right _) -> checkInstrs prog rest vars
+checkInstrs prog (If _ thenProg : rest) vars =
+    case checkInstrs thenProg thenProg vars of
+        Left err -> Left err
+        Right _ -> checkInstrs prog rest vars
+checkInstrs prog (Fork _ forkProg : rest) vars =
+    case checkInstrs forkProg forkProg vars of
+        Left err -> Left err
+        Right _ -> checkInstrs prog rest vars
 checkInstrs prog (_ : rest) vars = checkInstrs prog rest vars
 
 ----renameVariables :: Program -> Program
