@@ -1,48 +1,50 @@
 module Elaborator where
 
+import Parser
+
 -- Function to check for duplicate declarations
 checkDuplicates :: Program -> Either String Program
-checkDuplicates (Program instrs) = checkInstrs (Program instrs) instrs []
+checkDuplicates instrs = checkInstrs instrs instrs []
 
 checkInstrs :: Program -> [Instr] -> [String] -> Either String Program
 checkInstrs prog [] _ = Right prog
 checkInstrs prog (Decl _ _ var _ : rest) vars
       | elem var vars = Left $ "Duplicate declaration of variable: " ++ var
       | otherwise = checkInstrs prog rest (var : vars)
-checkInstrs _ (_ : rest) vars = checkInstrs rest vars
+checkInstrs prog (_ : rest) vars = checkInstrs prog rest vars
 
---renameVariables :: Program -> Program
---renameVariables = (Program instrs) = Program (renameInstrs instrs [])
-renameInstrs [Instr] -> [String] -> Integer -> Either String [Instr]
-renameInstrs [] _ _ = Right []
-renameInstrs (Decl scope varType var expr : rest) vars counter
-  | isJust index = Right (Decl scope ("$" ++ index) var expr)  : (renameInstrs rest vars counter)
-  | otherwise = Right (Decl scope ("$" ++ counter) var expr) : (renameInstrs rest (vars ++ var) (counter + 1))
-  where index = elemIndex var vars
-renameInstrs (Assign var expr : rest) vars counter
-  | isJust index = Right (Assign ("$" ++ index) (renameExpr expr vars)) : (renameInstrs rest vars counter)
-  | otherwise = : Left $ "Use of variable before declaration: " ++ var
-  where index = elemIndex var vars
-renameInstrs (While expr prog: rest) vars counter =
-  (While (renameExpr expr vars) prog) : (renameInstrs rest vars counter)
-renameInstrs (IfElse expr prog1 prog2 : rest) vars counter =
-  (IfElse (renameExpr expr vars) prog1 prog2: rest) : (renameInstrs rest vars counter)
-renameInstrs (If expr prog : rest) =
-  (If (renameExpr expr vars) prog) : (renameInstrs rest vars counter)
-
-renameExpr :: Expr -> [String] -> Either String Expr
-renameExpr (BinOp op expr1 expr2) vars
-  | isLeft renamedExpr1 = Left $ "Use of variable before declaration"
-  | isLeft renamedExpr2 == Left $ "Use of variable before declaration"
-  | otherwise
-  where
-    renamedExpr1 = renameExpr expr1 vars
-    renamedExpr2 = renameExpr expr2vars
-renameExpr (Var var) vars
-  | index >= 0 = Var ("$" ++ (show index))
-  | otherwise = Var ("Use_of_variable_before_declaration:_" ++ var)
-  where index = fromMaybe (-1) $ elemIndex var vars
-renameExpr (Val n) _ = Val n
+----renameVariables :: Program -> Program
+----renameVariables = (Program instrs) = Program (renameInstrs instrs [])
+--renameInstrs [Instr] -> [String] -> Integer -> Either String [Instr]
+--renameInstrs [] _ _ = Right []
+--renameInstrs (Decl scope varType var expr : rest) vars counter
+--  | isJust index = Right (Decl scope ("$" ++ index) var expr)  : (renameInstrs rest vars counter)
+--  | otherwise = Right (Decl scope ("$" ++ counter) var expr) : (renameInstrs rest (vars ++ var) (counter + 1))
+--  where index = elemIndex var vars
+--renameInstrs (Assign var expr : rest) vars counter
+--  | isJust index = Right (Assign ("$" ++ index) (renameExpr expr vars)) : (renameInstrs rest vars counter)
+--  | otherwise = : Left $ "Use of variable before declaration: " ++ var
+--  where index = elemIndex var vars
+--renameInstrs (While expr prog: rest) vars counter =
+--  (While (renameExpr expr vars) prog) : (renameInstrs rest vars counter)
+--renameInstrs (IfElse expr prog1 prog2 : rest) vars counter =
+--  (IfElse (renameExpr expr vars) prog1 prog2: rest) : (renameInstrs rest vars counter)
+--renameInstrs (If expr prog : rest) =
+--  (If (renameExpr expr vars) prog) : (renameInstrs rest vars counter)
+--
+--renameExpr :: Expr -> [String] -> Either String Expr
+--renameExpr (BinOp op expr1 expr2) vars
+--  | isLeft renamedExpr1 = Left $ "Use of variable before declaration"
+--  | isLeft renamedExpr2 == Left $ "Use of variable before declaration"
+--  | otherwise
+--  where
+--    renamedExpr1 = renameExpr expr1 vars
+--    renamedExpr2 = renameExpr expr2vars
+--renameExpr (Var var) vars
+--  | index >= 0 = Var ("$" ++ (show index))
+--  | otherwise = Var ("Use_of_variable_before_declaration:_" ++ var)
+--  where index = fromMaybe (-1) $ elemIndex var vars
+--renameExpr (Val n) _ = Val n
 
 --TypeChecking:
 ---- Type environment: map variable names to their types
