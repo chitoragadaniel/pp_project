@@ -31,6 +31,8 @@ symbol = Token.symbol lexer
 reserved :: String -> Parser ()
 reserved = Token.reserved lexer
 
+reservedOp :: String -> Parser ()
+reservedOp = Token.reservedOp lexer
 
 type Program  = [Instr]
 data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Local: int i = 0; Shared: shared int i = o;
@@ -91,75 +93,71 @@ parseInstr :: Parser Instr
 parseInstr = try (Decl <$> parseScope
                        <*> parseType
                        <*> identifier
-                       <*> (optionMaybe (reserved "=" *> parseLogicalExpr)))
-           <|> try (Assign <$> identifier <*> (reserved "=" *> parseLogicalExpr))
-           <|> try (While <$> (reserved "while" *> (parens parseLogicalExpr))
+                       <*> (optionMaybe (reserved "=" *> parseExpr)))
+           <|> try (Assign <$> identifier <*> (reserved "=" *> parseExpr))
+           <|> try (While <$> (reserved "while" *> (parens parseExpr))
                           <*> (braces parseProgram))
-           <|> try (IfElse <$> (reserved "if" *> (parens parseLogicalExpr))
+           <|> try (IfElse <$> (reserved "if" *> (parens parseExpr))
                            <*> (braces parseProgram)
                            <*> (reserved "else" *> (braces parseProgram)))
-           <|> try (If <$> (reserved "if" *> (parens parseLogicalExpr))
+           <|> try (If <$> (reserved "if" *> (parens parseExpr))
                        <*> (braces parseProgram))
-           <|> try (Print <$> (reserved "print" *> (parens parseLogicalExpr)))
+           <|> try (Print <$> (reserved "print" *> (parens parseExpr)))
            <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> (braces parseProgram))
            <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
-           <|> try (Unlock <$> (reserved "lock" *> (parens identifier)))
-
-parseLogicalExpr :: Parser Expr
-parseLogicalExpr = try (binOp <$> parseComparisonExpr <*> parseAndOp <*> parseLogicalExpr)
-        <|> try (binOp <$> parseComparisonExpr <*> parseOrOp <*> parseLogicalExpr)
-        <|> try (parseComparisonExpr)
-        <|> (parens parseComparisonExpr)
-
-parseComparisonExpr :: Parser Expr
-parseComparisonExpr = try (binOp <$> parseMultExpr <*> parseEQOp <*> parseMultExpr)
-         <|> try (binOp <$> parseMultExpr <*> parseLTESOp <*> parseMultExpr)
-         <|> try (binOp <$> parseMultExpr <*> parseLTSOp <*> parseMultExpr)
-         <|> try (parseMultExpr)
-         <|> (parens parseMultExpr)
-
-parseMultExpr :: Parser Expr
-parseMultExpr = try (binOp <$> parseAddSubExpr <*> parseMultOp <*> parseMultExpr)
-         <|> try (parseAddSubExpr)
-         <|> (parens parseAddSubExpr)
-
-parseAddSubExpr :: Parser Expr
-parseAddSubExpr = try (binOp <$> parseExpr <*> parseAddOp <*> parseAddSubExpr)
-         <|> try (binOp <$> parseExpr <*> parseSubOp <*> parseAddSubExpr)
-         <|> try (NotOp <$> (reserved "not" *> parseAddSubExpr))
-         <|> try (parseExpr)
-         <|> (parens parseExpr)
+           <|> try (Unlock <$> (reserved "unlock" *> (parens identifier)))
 
 parseExpr :: Parser Expr
-parseExpr = try (Val <$> integer)
+parseExpr = parseOrExpr
+
+parseOrExpr :: Parser Expr
+parseOrExpr = try (binOp <$> parseAndExpr <*> parseOrOp <*> parseOrExpr)
+          <|> parseAndExpr
+
+parseAndExpr :: Parser Expr
+parseAndExpr = try (binOp <$> parseComparisonExpr <*> parseAndOp <*> parseAndExpr)
+           <|> parseComparisonExpr
+
+parseComparisonExpr :: Parser Expr
+parseComparisonExpr = try (binOp <$> parseAddSubExpr <*> parseComparisonOp <*> parseMultExpr)
+                  <|> parseAddSubExpr
+
+parseAddSubExpr :: Parser Expr
+parseAddSubExpr = try (binOp <$> parseMultExpr <*> parseAddSubOp <*> parseAddSubExpr)
+              <|> parseMultExpr
+
+parseMultExpr :: Parser Expr
+parseMultExpr = try (binOp <$> parseUnaryExpr <*> parseMultOp <*> parseMultExpr)
+            <|> parseUnaryExpr
+
+parseUnaryExpr :: Parser Expr
+parseUnaryExpr = try (NotOp <$> (reserved "not" *> parseUnaryExpr)) <|> parseTerm
+
+parseTerm :: Parser Expr
+parseTerm = try (parens parseExpr)
+        <|> try (Val <$> integer)
         <|> try (reserved "true" >> return (Val 1))
         <|> try (reserved "false" >> return (Val 0))
-        <|> Var <$> identifier
+        <|> (Var <$> identifier)
 
 -- Parsers for operators
-parseAddOp :: Parser Op
-parseAddOp = reserved "+" >> pure AddS
-
-parseSubOp :: Parser Op
-parseSubOp = reserved "-" >> pure SubS
+parseAddSubOp :: Parser Op
+parseAddSubOp = try (reservedOp "+" >> pure AddS)
+            <|> (reservedOp "-" >> pure SubS)
 
 parseMultOp :: Parser Op
-parseMultOp = reserved "*" >> pure MultS
+parseMultOp = reservedOp "*" >> pure MultS
 
-parseEQOp :: Parser Op
-parseEQOp = reserved "==" >> pure EQS
-
-parseLTSOp :: Parser Op
-parseLTSOp = reserved "<" >> pure LTS
-
-parseLTESOp :: Parser Op
-parseLTESOp = reserved "<=" >> pure LTES
+parseComparisonOp :: Parser Op
+parseComparisonOp = try (reservedOp "==" >> pure EQS)
+                <|> try (reservedOp "<=" >> pure LTES)
+                <|> (reservedOp "<" >> pure LTS)
 
 parseAndOp :: Parser Op
-parseAndOp = reserved "and" >> pure AndS
+parseAndOp = reservedOp "and" >> pure AndS
 
 parseOrOp :: Parser Op
-parseOrOp = reserved "or" >> pure OrS
+parseOrOp = reservedOp "or" >> pure OrS
 
 -- Parser for type
 parseType :: Parser Type

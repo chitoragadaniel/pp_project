@@ -1,5 +1,7 @@
 module Elaborator where
 
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Language
 import Parser
 
 -- Function to check for duplicate declarations
