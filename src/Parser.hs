@@ -57,9 +57,8 @@ data Op = AddS | SubS | MultS                         -- Integer operators
         | AndS | OrS                                  -- Logical operators
         deriving Show
 
-data Type = TypeInt | TypeBool | TypeLock deriving Show
+data Type = TypeInt | TypeBool | TypeLock deriving (Show, Eq)
 data Scope = Local | Shared deriving (Show, Eq)
-
 
 
 --data Instr    = AssignB String ExprB            -- bool b = true
