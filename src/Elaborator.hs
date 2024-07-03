@@ -9,6 +9,7 @@ checkInstrs prog [] _ = Right prog
 checkInstrs prog (Decl _ _ var _ : rest) vars
       | elem var vars = Left $ "Duplicate declaration of variable: " ++ var
       | otherwise = checkInstrs prog rest (var : vars)
+checkInstrs _ (_ : rest) vars = checkInstrs rest vars
 
 --renameVariables :: Program -> Program
 --renameVariables = (Program instrs) = Program (renameInstrs instrs [])
