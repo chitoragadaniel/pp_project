@@ -5,28 +5,31 @@ import Data.List
 
 main :: IO ()
 --main = run $ codeGen testProg1
-main = run $ codeGen program'
+main = run $ codeGen program
 
+-- Generates the code of each thread of a program; A program here is a block of IR instructions
 codeGen :: Program -> [[Instruction]]
-codeGen p = map (++ [EndProg]) $ main : forks
+codeGen p = map (++ [EndProg]) $ main : forks                                           -- Append "EndProg" to all the generated code 
   where
-    main =  progGen (shared, localVar p []) p
-    forks = map (\(t, p) -> waitToStart t ++ progGen (shared, localVar p []) p) (forkAST p [])
-    shared = sharedVar p []
-    waitToStart t = [ ReadInstr (DirAddr t)
-                    , Receive regA
-                    , Compute Equal regA reg0 regA
-                    , Branch regA (Rel (-3))
-                    ]
+    main =  progGen (shared, localVar p []) p                                           -- Generate the code main thread 
+    forks = map (\p -> waitToStart ++ progGen (shared, localVar p []) p) (forkAST p []) -- Generate the code of the forked threads
+    shared = sharedVar p []                                                             -- Generate the shared variable dictionary 
+    waitToStart = [ ReadInstr (DirAddr regSprID)  
+                  , Receive regA
+                  , Compute Equal regA reg0 regA
+                  , Branch regA (Rel (-3))
+                  ]
 
+-- Generates the code of a program, having as an argument the local/shared variable dictionary tuple
 progGen :: (Dict,Dict) -> Program -> [Instruction]
 progGen d = foldl (\xs x -> xs ++ instrGen d x) []
 
+-- Generates code of an IR instruction, having as an argument the local/shared variable dictionary tuple
 instrGen :: (Dict,Dict) -> Instr -> [Instruction]
 instrGen d (Decl Local  _ n (Just e)) = exprGen regA d e ++ [Store regA (DirAddr i)]       where (_,i) = getAddr n d
 instrGen d (Decl Shared _ n (Just e)) = exprGen regA d e ++ [WriteInstr regA (DirAddr i)]  where (_,i) = getAddr n d
-instrGen _ (Decl Local  _ _ Nothing) = []
-instrGen _ (Decl Shared _ _ Nothing) = []
+instrGen _ (Decl Local  _ _ Nothing) = [] -- the case when the variable is just declared without assignment
+instrGen _ (Decl Shared _ _ Nothing) = [] -- the same as above
 instrGen d (Assign n e)
   | s == Local = exprGen regA d e ++ [Store regA (DirAddr i)]
   | otherwise  = exprGen regA d e ++ [WriteInstr regA (DirAddr i)]
@@ -67,6 +70,8 @@ exprGen :: Int -> (Dict,Dict) -> Expr -> [Instruction]
 exprGen r d (BinOp o e1 e2) = exprGen r d e1
                               ++ exprGen (r+1) d e2
                               ++ [Compute (opGen o) r (r+1) r]
+exprGen r d (NotOp e) = exprGen r d e 
+                        ++ [Compute Equal r reg0 r]
 exprGen r _    (Val x) = [Load (ImmValue x) r]
 exprGen r d (Var x)
   | s == Local = [Load (DirAddr i) r]
@@ -86,9 +91,9 @@ opGen OrS   = Or
           
 type Dict  = [(String,Int)]
 
-forkAST :: Program -> [(Int, Program)] -> [(Int, Program)]
+forkAST :: Program -> [Program] -> [Program]
 forkAST [] ys = ys
-forkAST (Fork (Just i) p:xs) ys = forkAST xs $ forkAST p $ ys ++ [(i,p)]
+forkAST (Fork (Just i) p:xs) ys = forkAST xs $ forkAST p $ ys ++ [p]
 forkAST (_:xs) ys = forkAST xs ys
 
 sharedVar :: Program -> Dict -> Dict
@@ -123,27 +128,6 @@ getAddr n (shared, local)
     l = search local
     s = search shared
 
-
---testProg1 :: Program   -- 2+6+5*3 = 23
---testProg1 =
---  [ Decl Local TypeInt "a"
---      (BinOp AddS (Val 2)
---          (BinOp AddS (Val 6)
---            (BinOp MultS (Val 5) (Val 3))
---          )
---      )
---    , Print (Var "a")
---    , Decl Shared TypeInt "b" (Just $ Val 10)
---    , Assign "b" (BinOp MultS (Var "a") (Var "b"))
---    , Print (Var "b")
---    , If (BinOp EQS (Val 1) (Val 1)) [Print (Var "b")]
---    , Print (Var "b")
---    , Decl Local TypeInt "i" (Val 0)
---    , While (BinOp LTES (Var "i") (Val 10)) [Assign "i" (BinOp AddS (Var "i") (Val 1)), Print(Var "i")]
---    , Print(Var "i")
---    , IfElse (Val 0) [Print (Val 1)] [Print (Val 2)]
---    , Print(Var "i")
---    ]
 
 program :: Program
 program =
