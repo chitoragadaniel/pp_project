@@ -94,7 +94,7 @@ parseInstr = try (Decl <$> parseScope
                        <*> (optionMaybe (reserved "=" *> parseLogicalExpr)))
            <|> try (Assign <$> identifier <*> (reserved "=" *> parseLogicalExpr))
            <|> try (While <$> (reserved "while" *> (parens parseLogicalExpr))
-                          <*> parseProgram)
+                          <*> (braces parseProgram))
            <|> try (IfElse <$> (reserved "if" *> (parens parseLogicalExpr))
                            <*> (braces parseProgram)
                            <*> (reserved "else" *> (braces parseProgram)))

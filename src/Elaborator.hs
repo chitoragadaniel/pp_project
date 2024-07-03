@@ -3,32 +3,32 @@ module Elaborator where
 import Parser
 
 -- Function to check for duplicate declarations
-checkDuplicates :: Program -> Either String Program
-checkDuplicates instrs = checkInstrs instrs instrs []
+checkDuplicates :: Program -> Either String Bool
+checkDuplicates instrs = checkInstrs instrs []
 
-checkInstrs :: Program -> [Instr] -> [String] -> Either String Program
-checkInstrs prog [] _ = Right prog
-checkInstrs prog (Decl _ _ var _ : rest) vars
+checkInstrs :: [Instr] -> [String] -> Either String Bool
+checkInstrs [] _ = Right True
+checkInstrs (Decl _ _ var _ : rest) vars
     | elem var vars = Left $ "Duplicate declaration of variable: " ++ var
-    | otherwise = checkInstrs prog rest (var : vars)
-checkInstrs prog (While _ whileProg : rest) vars =
-    case checkInstrs whileProg whileProg vars of
+    | otherwise = checkInstrs rest (var : vars)
+checkInstrs (While _ whileProg : rest) vars =
+    case checkInstrs whileProg vars of
         Left err -> Left err
-        Right _ -> checkInstrs prog rest vars
-checkInstrs prog (IfElse _ thenProg elseProg : rest) vars =
-    case (checkInstrs thenProg thenProg vars, checkInstrs elseProg elseProg vars) of
+        Right _ -> checkInstrs rest vars
+checkInstrs (IfElse _ thenProg elseProg : rest) vars =
+    case (checkInstrs thenProg vars, checkInstrs elseProg vars) of
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-        (Right _, Right _) -> checkInstrs prog rest vars
-checkInstrs prog (If _ thenProg : rest) vars =
-    case checkInstrs thenProg thenProg vars of
+        (Right _, Right _) -> checkInstrs rest vars
+checkInstrs (If _ thenProg : rest) vars =
+    case checkInstrs thenProg vars of
         Left err -> Left err
-        Right _ -> checkInstrs prog rest vars
-checkInstrs prog (Fork _ forkProg : rest) vars =
-    case checkInstrs forkProg forkProg vars of
+        Right _ -> checkInstrs rest vars
+checkInstrs (Fork _ forkProg : rest) vars =
+    case checkInstrs forkProg vars of
         Left err -> Left err
-        Right _ -> checkInstrs prog rest vars
-checkInstrs prog (_ : rest) vars = checkInstrs prog rest vars
+        Right _ -> checkInstrs rest vars
+checkInstrs (_ : rest) vars = checkInstrs rest vars
 
 ----renameVariables :: Program -> Program
 ----renameVariables = (Program instrs) = Program (renameInstrs instrs [])
