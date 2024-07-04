@@ -4,6 +4,10 @@ import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Parser
 
+-- #####################################################################################################################
+-- #                                       Checking for duplicate variable names                                       #
+-- #####################################################################################################################
+
 -- Function to check for duplicate declarations
 checkDuplicates :: Program -> Either String Bool
 checkDuplicates instrs = checkInstrs instrs []
@@ -32,7 +36,9 @@ checkInstrs (Fork _ forkProg : rest) vars =
         Right _ -> checkInstrs rest vars
 checkInstrs (_ : rest) vars = checkInstrs rest vars
 
---TypeChecking:
+-- #####################################################################################################################
+-- #                                                   Type Checking                                                   #
+-- #####################################################################################################################
 
 -- Function to type check a program
 checkProgram :: TypeEnv -> Program -> Either String TypeEnv
@@ -131,10 +137,14 @@ checkInstr env (Unlock var) =
         Right t | t == TypeLock -> Right env
                 | otherwise -> Left $ "Type error in unlock instruction to " ++ var
 
---Program Optimization:
-    -- Variable renaming
-    -- Changes Boolean values into Integer values (true -> 1, false -> 0)
-    -- Number fork instructions sequentially.
+-- #####################################################################################################################
+-- #                                               Program Optimizations                                               #
+-- #####################################################################################################################
+
+-- What kind of optimizations:
+-- Variable renaming
+-- Changes Boolean values into Integer values (true -> 1, false -> 0)
+-- Number fork instructions sequentially.
 
 -- Type environment: map variable names to their types
 type VarEnv = [(String, String)]
