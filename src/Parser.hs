@@ -49,6 +49,7 @@ data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Loc
 data Expr     = BinOp Op Expr Expr
               | NotOp Expr
               | Val Int                               -- A integer
+              | BVal Bool                             -- boolean value
               | Var String                            -- Using a variable
               deriving Show
 
@@ -59,29 +60,6 @@ data Op = AddS | SubS | MultS                         -- Integer operators
 
 data Type = TypeInt | TypeBool | TypeLock deriving (Show, Eq)
 data Scope = Local | Shared deriving (Show, Eq)
-
-
---data Instr    = AssignB String ExprB            -- bool b = true
---              | AssignI String ExprI            -- int a = 10
---              | While ExprB Program             -- while (b) { a = a + 1}
---              | IfElse ExprB Program Program    -- if (b) {int c = 0} else {int c = 1}
---              | If ExprB Program                -- if (b) {int c = 0}
---              | Print [Printable]               -- print("This is a boolean: " ++ b)
---
---data ExprB    = BinOpB  OpB ExprB ExprB         -- true and false
---              | BinOpCB OpC ExprB ExprB         -- true == false
---              | BinOpCI OpC ExprI ExprI         -- a < 10
---              | ValB Bool                       -- false
---              | VarB String                     -- b
---
---data ExprI    = BinOpI OpI ExprI ExprI          -- 2 ^ a
---              | ValI Int                        -- 2
---              | VarI String                     -- a
---
---data Printable = PrintB ExprB | PrintI ExprI | PrintS String
---data OpB = And | Or | Not
---data OpC = EQS | LTS | LTES
---data OpI = Add | Sub | Mult | Pow
 
 -- Parser for a program
 parseProgram :: Parser Program
@@ -135,8 +113,8 @@ parseUnaryExpr = try (NotOp <$> (reserved "not" *> parseUnaryExpr)) <|> parseTer
 parseTerm :: Parser Expr
 parseTerm = try (parens parseExpr)
         <|> try (Val <$> integer)
-        <|> try (reserved "true" >> return (Val 1))
-        <|> try (reserved "false" >> return (Val 0))
+        <|> try (reserved "true" >> return (BVal True))
+        <|> try (reserved "false" >> return (BVal False))
         <|> (Var <$> identifier)
 
 -- Parsers for operators
