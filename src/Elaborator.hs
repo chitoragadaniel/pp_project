@@ -40,22 +40,20 @@ checkInstrs (_ : rest) vars = checkInstrs rest vars
 -- #                                                   Type Checking                                                   #
 -- #####################################################################################################################
 
--- Function to type check a program
-checkProgram :: TypeEnv -> Program -> Either String TypeEnv
-checkProgram env [] = Right env
-checkProgram env (instr : rest) =
-    case checkInstr env instr of
-        Left err -> Left err
-        Right newEnv -> checkProgram newEnv rest
+-- ContextScope types that represent different levels of scope to keep track of the scope during typechecking
+data ContextScope = GlobalScope | ForkScope | ControlScope
+
+-- Variable type: scope and type
+type VarType = (Scope, Type)
 
 -- Type environment: map variable names to their types
-type TypeEnv = [(String, Type)]
+type TypeEnv = [(String, VarType)]
 
 -- Function to get the type of a variable from the environment
 lookupVarType :: String -> TypeEnv -> Either String Type
 lookupVarType var env = case lookup var env of
-    Just t  -> Right t
-    Nothing -> Left $ "Variable " ++ var ++ " not found."
+    Just (s, t)  -> Right t
+    Nothing -> Left $ "Variable " ++ var ++ " not found in scope."
 
 -- Function to infer the type of an expression
 inferExprType :: TypeEnv -> Expr -> Either String Type
@@ -84,54 +82,81 @@ inferExprType env (BinOp op e1 e2) =
         (OrS, Right TypeBool, Right TypeBool) -> Right TypeBool
         (_, _, _) -> Left $ "Type error in binary operation " ++ show op
 
+-- Function to filter only shared variables
+filterSharedVariables :: TypeEnv -> TypeEnv
+filterSharedVariables [] = []
+filterSharedVariables ((var, (s,t)) : rest) =
+    case s of
+        Shared -> (var, (s,t)) : filterSharedVariables rest
+        _ -> filterSharedVariables rest
+
+-- Function to check a whole program
+checkProgram :: Program -> Either String Program
+checkProgram program =
+    case checkProg [] program GlobalScope of
+        Left err -> Left err
+        Right _ -> Right program
+
+-- Function to type check a program
+checkProg :: TypeEnv -> Program -> ContextScope -> Either String TypeEnv
+checkProg env [] _ = Right env
+checkProg env (instr : rest) context =
+    case checkInstr env instr context of
+        Left err -> Left err
+        Right newEnv -> checkProg newEnv rest context
+
 -- Function to type check a single instruction
-checkInstr :: TypeEnv -> Instr -> Either String TypeEnv
-checkInstr env (Decl _ t var maybeExpr) =
-    case maybeExpr of
-        Just expr -> case inferExprType env expr of
-                             Right t' | t == t' -> Right ((var, t) : env)
+checkInstr :: TypeEnv -> Instr -> ContextScope -> Either String TypeEnv
+checkInstr env (Decl s t var maybeExpr) context =
+    case (context, s, t, maybeExpr) of
+        (ControlScope, Shared, _, _) -> Left $ "Cannot declare shared variable in local scope"
+        (ForkScope, Shared, _, _) -> Left $ "Cannot declare shared variable in local scope"
+        (_, Local, TypeLock, _) -> Left $ "Cannot declare lock with local scope"
+        (_, _, _,  Just expr) -> case inferExprType env expr of
+                             Right t' | t == t' -> Right ((var, (s,t)) : env)
                                       | otherwise -> Left $ "Type error in declaration of " ++ var
                              Left err -> Left err
-        Nothing -> Right ((var, t) : env)
-checkInstr env (Assign var expr) =
+        (_, _, _, Nothing) -> Right ((var, (s, t)) : env)
+checkInstr env (Assign var expr) context =
     case (lookupVarType var env, inferExprType env expr) of
         (Right t, Right t') | t == t' -> Right env
                             | otherwise -> Left $ "Type error in assignment to " ++ var
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-checkInstr env (While expr prog) =
-    case (inferExprType env expr, checkProgram env prog) of
+checkInstr env (While expr prog) _ =
+    case (inferExprType env expr, checkProg env prog ControlScope) of
         (Right TypeBool, Right _) -> Right env
         (Right _, Right _) -> Left "Type error in if condition"
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-checkInstr env (IfElse expr prog1 prog2) =
-    case (inferExprType env expr, checkProgram env prog1, checkProgram env prog2) of
+checkInstr env (IfElse expr prog1 prog2) _ =
+    case (inferExprType env expr, checkProg env prog1 ControlScope, checkProg env prog2 ControlScope) of
         (Right TypeBool, Right _, Right _) -> Right env
         (Right _, Right _, Right _) -> Left "Type error in if condition"
         (Left err, _, _) -> Left err
         (_, Left err, _) -> Left err
         (_, _, Left err) -> Left err
-checkInstr env (If expr prog) =
-    case (inferExprType env expr, checkProgram env prog) of
+checkInstr env (If expr prog) _ =
+    case (inferExprType env expr, checkProg env prog ControlScope) of
         (Right TypeBool, Right _) -> Right env
         (Right _, Right _) -> Left "Type error in if condition"
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-checkInstr env (Print expr) =
+checkInstr env (Print expr) _ =
     case inferExprType env expr of
         Right _ -> Right env
         Left err -> Left err
-checkInstr env (Fork _ prog) =
-    case (checkProgram env prog) of
-        Left err -> Left err
-        Right _ -> Right env
-checkInstr env (Lock var) =
+checkInstr env (Fork _ prog) context =
+    case (context, checkProg (filterSharedVariables env) prog ForkScope) of
+        (ControlScope, _) -> Left "Cannot enter fork from outside global scope"
+        (_, Left err) -> Left err
+        (_, Right _) -> Right env
+checkInstr env (Lock var) _ =
     case (lookupVarType var env) of
         Left err -> Left err
         Right t | t == TypeLock -> Right env
                 | otherwise -> Left $ "Type error in lock instruction to " ++ var
-checkInstr env (Unlock var) =
+checkInstr env (Unlock var) _=
     case (lookupVarType var env) of
         Left err -> Left err
         Right t | t == TypeLock -> Right env
@@ -243,3 +268,39 @@ optimizeExpr env (BinOp op l r) =
 
 exampleProgram = "int a = 10 bool b = true if (b) {int c = 5 while (c < 10) { c = c + 1 print(c) } fork { int d = 3 print(d) } } lock x lock(x) unlock(x)"
 parsedExampleProgram = [Decl Local TypeInt "a" (Just (Val 10)),Decl Local TypeBool "b" (Just (BVal True)),If (Var "b") [Decl Local TypeInt "c" (Just (Val 5)),While (BinOp LTS (Var "c") (Val 10)) [Assign "c" (BinOp AddS (Var "c") (Val 1)),Print (Var "c")],Fork Nothing [Decl Local TypeInt "d" (Just (Val 3)),Print (Var "d")]],Decl Local TypeLock "x" Nothing,Lock "x",Unlock "x"]
+
+-- int f1 = 0 fork { int f2 = 1 print(f1) }
+-- [Decl Local TypeInt "f1" (Just (Val 0)),Fork Nothing [Decl Local TypeInt "f2" (Just (Val 1)),Print (Var "f1")]]
+-- Left "Variable f1 not found."
+
+-- lock l
+-- [Decl Local TypeLock "l" Nothing]
+-- Left "Cannot declare lock with local scope"
+
+-- int a = 1 if (true) { int a = 2 print(a) } print(a)
+-- [Decl Local TypeInt "a" (Just (Val 1)),If (BVal True) [Decl Local TypeInt "a" (Just (Val 2)),Print (Var "a")],Print (Var "a")]
+-- Left "Duplicate declaration of variable: a"
+
+-- fork {shared int a}
+-- [Fork Nothing [Decl Shared TypeInt "a" Nothing]]
+-- Left "Cannot declare shared variable in local scope"
+
+-- if (true) {shared int a}
+-- [If (BVal True) [Decl Shared TypeInt "a" Nothing]]
+-- Left "Cannot declare shared variable in local scope"
+
+-- if (true) {fork {}}
+-- [If (BVal True) [Fork Nothing []]]
+-- Left "Cannot enter fork from outside global scope"
+
+-- if(true) { int a = 1 } print(a)
+-- [If (BVal True) [Decl Local TypeInt "a" (Just (Val 1))],Print (Var "a")]
+-- Left "Variable a not found in scope."
+
+-- print(a) int a = 10
+-- [Print (Var "a"),Decl Local TypeInt "a" (Just (Val 10))]
+-- Left "Variable a not found in scope."
+
+-- fork { print(a) } shared int a = 10
+-- [Fork Nothing [Print (Var "a")],Decl Shared TypeInt "a" (Just (Val 10))]
+-- Left "Variable a not found in scope."

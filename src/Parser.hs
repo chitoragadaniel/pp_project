@@ -82,8 +82,7 @@ parseInstr = try (Decl <$> parseScope
            <|> try (Print <$> (reserved "print" *> (parens parseExpr)))
            <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> (braces parseProgram))
            <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
-           <|> try (Unlock <$> (reserved "unlock" *> (parens identifier)))
-           <|> error "Could not parse instruction"
+           <|> (Unlock <$> (reserved "unlock" *> (parens identifier)))
 
 parseExpr :: Parser Expr
 parseExpr = parseOrExpr
@@ -117,38 +116,31 @@ parseTerm = try (parens parseExpr)
         <|> try (reserved "true" >> return (BVal True))
         <|> try (reserved "false" >> return (BVal False))
         <|> (Var <$> identifier)
-        <|> error "Could not parse expression"
 
 -- Parsers for operators
 parseAddSubOp :: Parser Op
 parseAddSubOp = try (reservedOp "+" >> pure AddS)
             <|> (reservedOp "-" >> pure SubS)
-            <|> error "Could not parse operator"
 
 parseMultOp :: Parser Op
-parseMultOp = try (reservedOp "*" >> pure MultS)
-          <|> error "Could not parse operator"
+parseMultOp = (reservedOp "*" >> pure MultS)
 
 parseComparisonOp :: Parser Op
 parseComparisonOp = try (reservedOp "==" >> pure EQS)
                 <|> try (reservedOp "<=" >> pure LTES)
                 <|> (reservedOp "<" >> pure LTS)
-                <|> error "Could not parse operator"
 
 parseAndOp :: Parser Op
-parseAndOp = try (reservedOp "and" >> pure AndS)
-         <|> error "Could not parse operator"
+parseAndOp = (reservedOp "and" >> pure AndS)
 
 parseOrOp :: Parser Op
-parseOrOp = try (reservedOp "or" >> pure OrS)
-        <|> error "Could not parse operator"
+parseOrOp = (reservedOp "or" >> pure OrS)
 
 -- Parser for type
 parseType :: Parser Type
 parseType = try (reserved "int" >> pure TypeInt)
          <|> try (reserved "bool" >> pure TypeBool)
          <|> (reserved "lock" >> pure TypeLock)
-         <|> error "Could not parse type"
 
 -- Parser for scope
 parseScope :: Parser Scope
