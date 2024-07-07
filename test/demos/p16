@@ -1,0 +1,25 @@
+// Multiple locks
+shared int a
+shared int b
+shared lock la
+shared lock lb
+fork {
+  lock(la)
+  a = a+1
+  unlock(la)
+  lock(lb)
+  b=b+2
+  unlock(lb)
+}
+fork {
+  lock(lb)
+  b=b+2
+  unlock(lb)
+  lock(la)
+  a = a+1
+  unlock(la)
+}
+
+while (not(a==2 && b==4)) {}
+print(a)
+print(b)

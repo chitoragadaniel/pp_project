@@ -1,7 +1,16 @@
 module CodeGen where
 import Parser
+import Elaborator
 import Sprockell
 import Data.List
+
+runCode :: String -> IO ()
+runCode = run . codeGen . optimizeProgram . checkProgram . runParseProgram
+
+runFile :: String -> IO ()
+runFile path = do
+  code <- readFile path
+  runCode code
 
 -- =====================================================================================================================
 --                                                Code Generation

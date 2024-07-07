@@ -4,13 +4,22 @@ import CodeGen
 import Sprockell
 import Test.Hspec
 import Test.QuickCheck
---import Test.Hspec.Core.Clock
+import System.Timeout
 import System.IO.Silently
 import Control.Exception
 
+
 main :: IO ()
 main = hspec $ do
-  describe "CodeGen" $ do
+  describe "Language (running code)" $ do
+    it "shows that a thread can't access local variables of other threads" $ do 
+      runFile "./test/demos/p0" `shouldThrow` anyException
+    it "defines a local lock" $ do 
+      runFile "./test/demos/p1" `shouldThrow` anyException
+    it "overshadows a variable" $ do
+      stdout <- capture_ $ runFile "./test/demos/p2"
+      stdout `shouldBe` "Sprockell 0 says 2/nSprockell 0 says 1/n"
+  describe "Code generation" $ do
     describe "dictionaries" $ do
       it "gets the local dictionary of a thread" $ do
         testLocalVar `shouldBe` [("c",2),("b",1),("i",0)]
@@ -39,39 +48,41 @@ main = hspec $ do
         testExprGenBinOp `shouldBe` [Load (DirAddr 0) 2,Load (ImmValue 10) 3,Load (ImmValue 11) 4,Compute Mul 3 4 3,Compute Add 2 3 2]
     describe "generating instructions" $ do -- add another print with an complicated expression
       it "prints the value 100" $ do
-        actual <- capture_ (run (codeGen printProgram))
-        actual `shouldBe` "Sprockell 0 says 100\n"
+        stdout <- capture_ (run (codeGen [Print $ Val 100]))
+        stdout `shouldBe` "Sprockell 0 says 100\n"
+      it "prints the 1+2" $ do
+        stdout <- capture_ (run (codeGen [Print $ BinOp AddS (Val 1) (Val 2)]))
+        stdout `shouldBe` "Sprockell 0 says 3\n"
       it "declares all types of legal variables" $ do
-        actual <- capture_ (run (codeGen declProgram))
-        actual `shouldBe` "Sprockell 0 says 0\nSprockell 0 says 1\nSprockell 0 says 2\nSprockell 0 says 22\n"
+        stdout <- capture_ (run (codeGen declProgram))
+        stdout `shouldBe` "Sprockell 0 says 0\nSprockell 0 says 1\nSprockell 0 says 2\nSprockell 0 says 22\n"
       it "tests running two if's; one with a true condition and one with a false one" $ do
-        actual <- capture_ (run (codeGen ifProgram))
-        actual `shouldBe` "Sprockell 0 says 10\n"
+        stdout <- capture_ (run (codeGen ifProgram))
+        stdout `shouldBe` "Sprockell 0 says 10\n"
       it "tests running two if with else; one with a true condition and one with a false one" $ do
-        actual <- capture_ (run (codeGen ifElseProgram))
-        actual `shouldBe` "Sprockell 0 says 10\nSprockell 0 says 10\n"
+        stdout <- capture_ (run (codeGen ifElseProgram))
+        stdout `shouldBe` "Sprockell 0 says 10\nSprockell 0 says 10\n"
       it "prints the values from 0 to 9 using while" $ do
-        actual <- capture_ (run (codeGen whileProgram))
-        actual `shouldBe` "Sprockell 0 says 0\nSprockell 0 says 1\nSprockell 0 says 2\nSprockell 0 says 3\nSprockell 0 says 4\nSprockell 0 says 5\nSprockell 0 says 6\nSprockell 0 says 7\nSprockell 0 says 8\nSprockell 0 says 9\n"
+        stdout <- capture_ (run (codeGen whileProgram))
+        stdout `shouldBe` "Sprockell 0 says 0\nSprockell 0 says 1\nSprockell 0 says 2\nSprockell 0 says 3\nSprockell 0 says 4\nSprockell 0 says 5\nSprockell 0 says 6\nSprockell 0 says 7\nSprockell 0 says 8\nSprockell 0 says 9\n"
       it "spawns 6 threads that try (not safely) to increment a shared variable of value 10" $ do
-        actual <- capture_ (run (codeGen threadProgram))
-        actual `shouldBe` "Sprockell 0 says 10\nSprockell 1 says 11\nSprockell 2 says 11\nSprockell 3 says 11\nSprockell 4 says 11\nSprockell 5 says 11\nSprockell 6 says 11\n"
+        stdout <- capture_ (run (codeGen threadProgram))
+        stdout `shouldBe` "Sprockell 0 says 10\nSprockell 1 says 11\nSprockell 2 says 11\nSprockell 3 says 11\nSprockell 4 says 11\nSprockell 5 says 11\nSprockell 6 says 11\n"
       it "spawns 6 threads increment safely a shared variable of value 10" $ do
-        actual <- capture_ (run (codeGen threadSafeProgram))
-        actual `shouldBe` "Sprockell 0 says 10\nSprockell 1 says 11\nSprockell 2 says 12\nSprockell 3 says 13\nSprockell 4 says 14\nSprockell 5 says 15\nSprockell 6 says 16\n"
+        stdout <- capture_ (run (codeGen threadSafeProgram))
+        stdout `shouldBe` "Sprockell 0 says 10\nSprockell 1 says 11\nSprockell 2 says 12\nSprockell 3 says 13\nSprockell 4 says 14\nSprockell 5 says 15\nSprockell 6 says 16\n"
       it "spawns 2 threads (one being nested) and both increment a shared variable" $ do
-        actual <- capture_ (run (codeGen nestedThreadProgram))
-        actual `shouldBe` ""
+        stdout <- capture_ (run (codeGen nestedThreadProgram))
+        stdout `shouldBe` ""
       it "spawns 2 threads that increment a by 1 and b by 2 using 2 locks for synchronization" $ do
-        actual <- capture_ (run (codeGen multipleLocksProgram))
-        actual `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 4\n"
+        stdout <- capture_ (run (codeGen multipleLocksProgram))
+        stdout `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 4\n"
     describe "others" $ do
       it "gets the IR's of all the spawned threads" $ do
         testForkAST `shouldBe` [[Decl Local TypeInt "f1" Nothing,Fork (Just 2) [Decl Local TypeInt "f2" Nothing]],[Decl Local TypeInt "f2" Nothing],[Decl Local TypeInt "f3" Nothing]]
---      it "runs an infinite while loop" $ do
---        actual <- capture_ $ timeout 1 $ run $ codeGen infiniteWhileProgram
---        actual `shouldBe` Nothing
-
+      it "runs an infinite while loop" $ do
+        stdout <- timeout 1 $ run $ codeGen infiniteWhileProgram
+        stdout `shouldBe` Nothing
 
 -- #####################################################################################################################
 -- #                                                 Code Generation                                                   #
@@ -132,9 +143,6 @@ sharedMemoryOverflowProgram =
   , Fork (Just 2) []
   , Fork (Just 3) []
   ]
-
-printProgram :: Program
-printProgram = [Print $ Val 100]
 
 declProgram :: Program
 declProgram =

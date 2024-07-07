@@ -1,0 +1,3 @@
+// Another use of an uninitialized variable
+fork {print(a)}
+shared int a = 10

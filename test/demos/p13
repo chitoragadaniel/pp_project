@@ -1,0 +1,27 @@
+// Thread safe
+shared int a = 10
+shared lock l
+fork {
+  lock(l)
+  a = a + 1
+  print(a)
+  unlock(l)
+}
+fork {
+  lock(l)
+  a = a + 1
+  print(a)
+  unlock(l)
+}
+fork {
+  lock(l)
+  a = a + 1
+  print(a)
+  unlock(l)
+}
+fork {
+  lock(l)
+  a = a + 1
+  print(a)
+  unlock(l)
+}

@@ -1,0 +1,3 @@
+// Infinite while loop
+while(true) {}
+print(0)

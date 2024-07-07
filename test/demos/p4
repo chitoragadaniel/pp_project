@@ -1,0 +1,2 @@
+// Shared variables not allowed outside the global scope
+if (true) {shared int a} // error
