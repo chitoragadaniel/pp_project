@@ -34,6 +34,9 @@ reserved = Token.reserved lexer
 reservedOp :: String -> Parser ()
 reservedOp = Token.reservedOp lexer
 
+whiteSpace :: Parser ()
+whiteSpace = Token.whiteSpace lexer
+
 type Program  = [Instr]
 data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Local: int i = 0; Shared: shared int i = o;
               | Assign String Expr                    -- Assign a value to a variable; i = 0
@@ -63,7 +66,7 @@ data Scope = Local | Shared deriving (Show, Eq)
 
 -- Parser for a program
 parseProgram :: Parser Program
-parseProgram =  many parseInstr
+parseProgram = many (whiteSpace *> parseInstr) <* eof
 
 -- Parser for a single instruction
 parseInstr :: Parser Instr
