@@ -5,38 +5,6 @@ import Text.ParserCombinators.Parsec.Language
 import Parser
 
 -- #####################################################################################################################
--- #                                       Checking for duplicate variable names                                       #
--- #####################################################################################################################
-
--- Function to check for duplicate declarations
-checkDuplicates :: Program -> Either String Bool
-checkDuplicates instrs = checkInstrs instrs []
-
-checkInstrs :: [Instr] -> [String] -> Either String Bool
-checkInstrs [] _ = Right True
-checkInstrs (Decl _ _ var _ : rest) vars
-    | elem var vars = Left $ "Duplicate declaration of variable: " ++ var
-    | otherwise = checkInstrs rest (var : vars)
-checkInstrs (While _ whileProg : rest) vars =
-    case checkInstrs whileProg vars of
-        Left err -> Left err
-        Right _ -> checkInstrs rest vars
-checkInstrs (IfElse _ thenProg elseProg : rest) vars =
-    case (checkInstrs thenProg vars, checkInstrs elseProg vars) of
-        (Left err, _) -> Left err
-        (_, Left err) -> Left err
-        (Right _, Right _) -> checkInstrs rest vars
-checkInstrs (If _ thenProg : rest) vars =
-    case checkInstrs thenProg vars of
-        Left err -> Left err
-        Right _ -> checkInstrs rest vars
-checkInstrs (Fork _ forkProg : rest) vars =
-    case checkInstrs forkProg vars of
-        Left err -> Left err
-        Right _ -> checkInstrs rest vars
-checkInstrs (_ : rest) vars = checkInstrs rest vars
-
--- #####################################################################################################################
 -- #                                                   Type Checking                                                   #
 -- #####################################################################################################################
 
@@ -108,15 +76,16 @@ checkProg env (instr : rest) context =
 -- Function to type check a single instruction
 checkInstr :: TypeEnv -> Instr -> ContextScope -> Either String TypeEnv
 checkInstr env (Decl s t var maybeExpr) context =
-    case (context, s, t, maybeExpr) of
-        (ControlScope, Shared, _, _) -> Left $ "Cannot declare shared variable in local scope"
-        (ForkScope, Shared, _, _) -> Left $ "Cannot declare shared variable in local scope"
-        (_, Local, TypeLock, _) -> Left $ "Cannot declare lock with local scope"
-        (_, _, _,  Just expr) -> case inferExprType env expr of
+    case (context, s, t, lookup var env, maybeExpr) of
+        (ControlScope, Shared, _, _, _) -> Left $ "Cannot declare shared variable in local scope"
+        (ForkScope, Shared, _, _, _) -> Left $ "Cannot declare shared variable in local scope"
+        (_, Local, TypeLock, _, _) -> Left $ "Cannot declare lock with local scope"
+        (_, _, _, Nothing, _) -> Left $ "Duplicate declaration of variable: " ++ var
+        (_, _, _, _, Just expr) -> case inferExprType env expr of
                              Right t' | t == t' -> Right ((var, (s,t)) : env)
                                       | otherwise -> Left $ "Type error in declaration of " ++ var
                              Left err -> Left err
-        (_, _, _, Nothing) -> Right ((var, (s, t)) : env)
+        (_, _, _, _, Nothing) -> Right ((var, (s, t)) : env)
 checkInstr env (Assign var expr) context =
     case (lookupVarType var env, inferExprType env expr) of
         (Right t, Right t') | t == t' -> Right env
@@ -182,6 +151,12 @@ lookupVarName var env = case lookup var env of
 
 getNewVarName :: VarEnv -> String
 getNewVarName env = "$" ++ show (length env)
+
+optimizeProgram :: Program -> Program
+optimizeProgram prog =
+    case (optimizeProg prog [] 0) of
+        Right (prog', _) -> prog'
+        Left err -> error err
 
 -- Optimizes a list of instructions
 optimizeProg :: Program -> VarEnv -> Int -> Either String (Program, Int)
