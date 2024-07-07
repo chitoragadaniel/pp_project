@@ -6,7 +6,7 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 languageDef =
   emptyDef { Token.commentLine      = "//"
            , Token.identStart       = letter
-           , Token.identLetter      = alphaNum
+           , Token.identLetter      = alphaNum <|> char '_'
            , Token.reservedNames    = [ "if", "else", "while", "true", "false", "int", "bool", "shared", "fork", "lock", "unlock"]
            , Token.reservedOpNames  = [ "=", "+", "-", "*", "^", "==", "<", "<=", "and", "or", "not"]
            }
@@ -24,9 +24,6 @@ parens = Token.parens lexer
 
 braces :: Parser a -> Parser a
 braces = Token.braces lexer
-
-symbol :: String -> Parser String
-symbol = Token.symbol lexer
 
 reserved :: String -> Parser ()
 reserved = Token.reserved lexer
@@ -66,7 +63,11 @@ data Scope = Local | Shared deriving (Show, Eq)
 
 -- Parser for a program
 parseProgram :: Parser Program
-parseProgram = many (whiteSpace *> parseInstr) <* eof
+parseProgram = whiteSpace *> many parseInstr <* eof
+
+-- Parser for a block of code between braces
+parseBlock :: Parser Program
+parseBlock = braces (whiteSpace *> many parseInstr)
 
 -- Parser for a single instruction
 parseInstr :: Parser Instr
@@ -76,14 +77,14 @@ parseInstr = try (Decl <$> parseScope
                        <*> (optionMaybe (reserved "=" *> parseExpr)))
            <|> try (Assign <$> identifier <*> (reserved "=" *> parseExpr))
            <|> try (While <$> (reserved "while" *> (parens parseExpr))
-                          <*> (braces parseProgram))
+                          <*> parseBlock)
            <|> try (IfElse <$> (reserved "if" *> (parens parseExpr))
-                           <*> (braces parseProgram)
-                           <*> (reserved "else" *> (braces parseProgram)))
+                           <*> parseBlock
+                           <*> (reserved "else" *> parseBlock))
            <|> try (If <$> (reserved "if" *> (parens parseExpr))
-                       <*> (braces parseProgram))
+                       <*> parseBlock)
            <|> try (Print <$> (reserved "print" *> (parens parseExpr)))
-           <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> (braces parseProgram))
+           <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> parseBlock)
            <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
            <|> (Unlock <$> (reserved "unlock" *> (parens identifier)))
 
