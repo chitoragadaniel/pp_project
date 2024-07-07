@@ -59,11 +59,11 @@ filterSharedVariables ((var, (s,t)) : rest) =
         _ -> filterSharedVariables rest
 
 -- Function to check a whole program
-checkProgram :: Program -> Either String Program
+checkProgram :: Program -> Program
 checkProgram program =
     case checkProg [] program GlobalScope of
-        Left err -> Left err
-        Right _ -> Right program
+        Left err -> error err
+        Right _ -> program
 
 -- Function to type check a program
 checkProg :: TypeEnv -> Program -> ContextScope -> Either String TypeEnv
@@ -80,7 +80,7 @@ checkInstr env (Decl s t var maybeExpr) context =
         (ControlScope, Shared, _, _, _) -> Left $ "Cannot declare shared variable in local scope"
         (ForkScope, Shared, _, _, _) -> Left $ "Cannot declare shared variable in local scope"
         (_, Local, TypeLock, _, _) -> Left $ "Cannot declare lock with local scope"
-        (_, _, _, Nothing, _) -> Left $ "Duplicate declaration of variable: " ++ var
+        (_, _, _, Just _, _) -> Left $ "Duplicate declaration of variable: " ++ var
         (_, _, _, _, Just expr) -> case inferExprType env expr of
                              Right t' | t == t' -> Right ((var, (s,t)) : env)
                                       | otherwise -> Left $ "Type error in declaration of " ++ var

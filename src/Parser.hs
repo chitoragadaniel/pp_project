@@ -153,3 +153,10 @@ parseScope = try (reserved "shared" >> pure Shared)
 -- Helper function that takes an expression an operator and another expression and constructs a new expression.
 binOp :: Expr -> Op -> Expr -> Expr
 binOp left operator right = BinOp operator left right
+
+-- Function that takes input string and parses it to a program
+runParseProgram :: String -> Program
+runParseProgram input =
+  case (parse parseProgram "" input) of
+      Right prog -> prog
+      Left err -> error $ show err
