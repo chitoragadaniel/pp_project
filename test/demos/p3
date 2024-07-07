@@ -1,0 +1,2 @@
+// Shared variables not allowed in forks
+fork {shared int a} // error

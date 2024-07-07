@@ -1,0 +1,2 @@
+// Locks should be always shared
+lock l // error

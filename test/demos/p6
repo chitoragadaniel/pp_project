@@ -1,0 +1,5 @@
+// Variable out of scope
+if(true) {
+  int a = 1
+}
+print(a) // error

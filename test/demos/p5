@@ -1,0 +1,2 @@
+// Forks not allowed outside the global scope
+if (true) {fork {}} // error

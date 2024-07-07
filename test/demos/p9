@@ -1,0 +1,16 @@
+// Declaration
+int i
+print(i)
+
+bool b = true
+print(b)
+
+int s = 2
+print(s)
+s = 22
+print(s)
+
+shared lock l
+if (b) {
+  int c = 3
+}

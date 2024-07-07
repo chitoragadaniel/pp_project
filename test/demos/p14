@@ -1,0 +1,18 @@
+// Not thread safe example
+shared int a = 10
+fork {
+  a = a + 1
+  print(a)
+}
+fork {
+  a = a + 1
+  print(a)
+}
+fork {
+  a = a + 1
+  print(a)
+}
+fork {
+  a = a + 1
+  print(a)
+}

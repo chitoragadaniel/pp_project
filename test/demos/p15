@@ -1,0 +1,12 @@
+// Nested thread shared int sum
+int i = 10
+fork {
+  int i = 1
+  sum = sum + i
+  fork {
+    int i = 1
+    sum = sum + i
+  }
+}
+while (not(sum == 3)) {}
+print(i)

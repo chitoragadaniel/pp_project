@@ -1,0 +1,10 @@
+// Shared memory overflow
+shared int a1
+shared int a2
+shared int a3
+shared int a4
+shared int a5
+shared lock l
+fork {}
+fork {}
+fork {]

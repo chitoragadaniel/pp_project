@@ -1,0 +1,3 @@
+// Using an uninitialized variable
+print(a) // error
+int a
