@@ -4,17 +4,16 @@ import CodeGen
 import Sprockell
 import Test.Hspec
 import Test.QuickCheck
-import System.Timeout
+--import Test.Hspec.Core.Clock
 import System.IO.Silently
 import Control.Exception
-
 
 main :: IO ()
 main = hspec $ do
   describe "Language (running code)" $ do
-    it "shows that a thread can't access local variables of other threads" $ do 
+    it "shows that a thread can't access local variables of other threads" $ do
       runFile "./test/demos/p0" `shouldThrow` anyException
-    it "defines a local lock" $ do 
+    it "defines a local lock" $ do
       runFile "./test/demos/p1" `shouldThrow` anyException
     it "overshadows a variable" $ do
       stdout <- capture_ $ runFile "./test/demos/p2"
@@ -285,3 +284,377 @@ infiniteWhileProgram =
   [ While (Val 1) []
   , Print $ Val 0
   ]
+
+-- #####################################################################################################################
+-- #                                                     Parsing                                                       #
+-- #####################################################################################################################
+
+-- Test cases for parseType
+testParseTypeBool :: Either ParseError Type
+testParseTypeBool = parse parseType "" "bool"
+-- expected: Right TypeBool
+
+testParseTypeInt :: Either ParseError Type
+testParseTypeInt = parse parseType "" "int"
+-- expected: Right TypeInt
+
+testParseTypeLock :: Either ParseError Type
+testParseTypeLock = parse parseType "" "lock"
+-- expected: Right TypeLock
+
+-- Test cases for parseScope
+testParseScopeLocal :: Either ParseError Scope
+testParseScopeLocal = parse parseScope "" ""
+-- expected: Right Local
+
+testParseScopeShared :: Either ParseError Scope
+testParseScopeShared = parse parseScope "" "shared"
+-- expected: Right Shared
+
+-- Test cases for parseExpr
+testParseExprInt :: Either ParseError Expr
+testParseExprInt = parse parseExpr "" "5"
+-- expected: Right (Val 5)
+
+testParseExprBoolTrue :: Either ParseError Expr
+testParseExprBoolTrue = parse parseExpr "" "true"
+-- expected: Right (BVal True)
+
+testParseExprBoolFalse :: Either ParseError Expr
+testParseExprBoolFalse = parse parseExpr "" "false"
+-- expected: Right (BVal False)
+
+testParseExprVar :: Either ParseError Expr
+testParseExprVar = parse parseExpr "" "x"
+-- expected: Right (Var "x")
+
+testParseExprAddition :: Either ParseError Expr
+testParseExprAddition = parse parseExpr "" "x + 5"
+-- expected: Right (BinOp AddS (Var "x") (Val 5))
+
+testParseExprLogicalAnd :: Either ParseError Expr
+testParseExprLogicalAnd = parse parseExpr "" "x and y"
+-- expected: Right (BinOp AndS (Var "x") (Var "y"))
+
+testParseExprComparison :: Either ParseError Expr
+testParseExprComparison = parse parseExpr "" "x == y"
+-- expected: Right (BinOp EQS (Var "x") (Var "y"))
+
+-- Test cases for parseInstr
+testParseInstrDecl :: Either ParseError Instr
+testParseInstrDecl = parse parseInstr "" "int x"
+-- expected: Right (Decl Local TypeInt "x" Nothing)
+
+testParseInstrDeclInit :: Either ParseError Instr
+testParseInstrDeclInit = parse parseInstr "" "int x = 5"
+-- expected: Right (Decl Local TypeInt "x" (Just (Val 5)))
+
+testParseInstrAssign :: Either ParseError Instr
+testParseInstrAssign = parse parseInstr "" "x = 5"
+-- expected: Right (Assign "x" (Val 5))
+
+testParseInstrWhile :: Either ParseError Instr
+testParseInstrWhile = parse parseInstr "" "while (true) { int x = 5 }"
+-- expected: Right (While (BVal True) [Decl Local TypeInt "x" (Just (Val 5))])
+
+testParseInstrIfElse :: Either ParseError Instr
+testParseInstrIfElse = parse parseInstr "" "if (true) { int x = 5; } else { int y = 6 }"
+-- expected: Right (IfElse (BVal True) [Decl Local TypeInt "x" (Just (Val 5))] [Decl Local TypeInt "y" (Just (Val 6))])
+
+testParseInstrPrint :: Either ParseError Instr
+testParseInstrPrint = parse parseInstr "" "print(x)"
+-- expected: Right (Print (Var "x"))
+
+testParseInstrLock :: Either ParseError Instr
+testParseInstrLock = parse parseInstr "" "lock(l)"
+-- expected: Right (Lock "l")
+
+testParseInstrUnlock :: Either ParseError Instr
+testParseInstrUnlock = parse parseInstr "" "unlock(l)"
+-- expected: Right (Unlock "l")
+
+testParseInstrFork :: Either ParseError Instr
+testParseInstrFork = parse parseInstr "" "fork { int x = 5 }"
+-- expected: Right (Fork Nothing [Decl Local TypeInt "x" (Just (Val 5))])
+
+-- Test cases for whole programs
+testParseProgram :: Either ParseError Program
+testParseProgram = parse parseProgram "" "int x = 5; while (true) { int y = 6; }"
+-- expected: Right [Decl Local TypeInt "x" (Just (Val 5)), While (BVal True) [Decl Local TypeInt "y" (Just (Val 6))]]
+
+-- Test cases for comments
+testParseWithComment :: Either ParseError Program
+testParseWithComment = parse parseProgram  "" "int x = 5; // this is a comment\nint y = 6;"
+-- expected: Right [Decl Local TypeInt "x" (Just (Val 5)), Decl Local TypeInt "y" (Just (Val 6))]
+
+-- Test cases for error scenarios
+testParseErrorIncompleteInstr :: Either ParseError Program
+testParseErrorIncompleteInstr = parse parseProgram "" "while (true) { int x = }"
+-- expected: Left
+
+testParseErrorIncompleteExpr :: Either ParseError Program
+testParseErrorIncompleteExpr = parse parseProgram "" "while (true) { int x = 5 + }"
+-- expected: Left
+
+testParseErrorInvalidInput :: Either ParseError Program
+testParseErrorInvalidInput = parse parseProgram "" "while (true) { int x = 5 + 7} invalid input"
+-- expected: Left
+
+-- #####################################################################################################################
+-- #                                                  Type Checking                                                    #
+-- #####################################################################################################################
+
+-- Test cases for lookupVarType
+testLookupVarTypeFound :: Either String Type
+testLookupVarTypeFound = lookupVarType "x" [("x", (Local, TypeInt))]
+-- expected: Right TypeInt
+
+testLookupVarTypeNotFound :: Either String Type
+testLookupVarTypeNotFound = lookupVarType "y" [("x", (Local, TypeInt))]
+-- expected: Left "Variable y not found"
+
+-- Test cases for inferExprType
+testInferExprTypeVal :: Either String Type
+testInferExprTypeVal = inferExprType [] (Val 5)
+-- expected: Right TypeInt
+
+testInferExprTypeBVal :: Either String Type
+testInferExprTypeBVal = inferExprType [] (BVal True)
+-- Expected: Right TypeBool
+
+testInferExprTypeVar :: Either String Type
+testInferExprTypeVar = inferExprType [("x", (Local, TypeInt))] (Var "x")
+ -- Expected: Right TypeInt
+
+testInferExprTypeNotOp :: Either String Type
+testInferExprTypeNotOp = inferExprType [("x", (Local, TypeBool))] (NotOp (Var "x"))
+-- Expected: Right TypeBool
+
+testInferExprTypeNotOpError :: Either String Type
+testInferExprTypeNotOpError = inferExprType [("x", (Local, TypeInt))] (NotOp (Var "x"))
+-- Expected: Left "Type error in NotOp"
+
+testInferExprTypeBinOpAdd :: Either String Type
+testInferExprTypeBinOpAdd = inferExprType [("x", (Local, TypeInt)), ("y", (Local, TypeInt))] (BinOp AddS (Var "x") (Var "y"))
+-- Expected: Right TypeInt
+
+testInferExprTypeBinOpError :: Either String Type
+testInferExprTypeBinOpError = inferExprType [("x", (Local, TypeInt)), ("y", (Local, TypeBool))] (BinOp AddS (Var "x") (Var "y"))
+-- Expected: "Type error in BinOp"
+
+-- Test cases for checkInstr
+testCheckInstrDecl :: Either String TypeEnv
+testCheckInstrDecl = checkInstr [] (Decl Local TypeInt "x" Nothing) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckInstrDeclInit :: Either String TypeEnv
+testCheckInstrDeclInit = checkInstr [] (Decl Local TypeInt "x" (Just (Val 5))) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckInstrDeclTypeError :: Either String TypeEnv
+testCheckInstrDeclTypeError =  checkInstr [] (Decl Local TypeInt "x" (Just (BVal True))) GlobalScope
+-- Expected: Left "Type error in Decl of x"
+
+testCheckInstrDeclForkScopeError :: Either String TypeEnv
+testCheckInstrDeclForkScopeError =  checkInstr [] (Decl Shared TypeInt "x" (Just (BVal True))) ForkScope
+-- Expected: Left "Cannot declare shared variable in local scope"
+
+testCheckInstrDeclControlScopeError :: Either String TypeEnv
+testCheckInstrDeclControlScopeError =  checkInstr [] (Decl Shared TypeInt "x" (Just (BVal True))) ForkScope
+-- Expected: Left "Cannot declare shared variable in local scope"
+
+testCheckInstrDeclLockError :: Either String TypeEnv
+testCheckInstrDeclLockError =  checkInstr [] (Decl Local TypeLock "x" Nothing) GlobalScope
+-- Expected: Left "Cannot declare lock with local scope"
+
+testCheckInstrDeclDuplicateDeclarationError :: Either String TypeEnv
+testCheckInstrDeclDuplicateDeclarationError = checkInstr [("x", (Local, TypeInt))] (Decl Local TypeLock "x" Nothing) GlobalScope
+-- Expected: Left "Duplicate declaration of variable: x"
+
+testCheckInstrAssign :: Either String TypeEnv
+testCheckInstrAssign = checkInstr [("x", (Local, TypeInt))] (Assign "x" (Val 5)) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckInstrAssignError :: Either String TypeEnv
+testCheckInstrAssignError = checkInstr [("x", (Local, TypeInt))] (Assign "x" (BVal True)) GlobalScope
+-- Expected: Left "Type error in Assign"
+
+testCheckInstrWhile :: Either String TypeEnv
+testCheckInstrWhile = checkInstr [("x", (Local, TypeInt))] (While (BVal True) [Assign "x" (Val 5)]) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckInstrWhileError :: Either String TypeEnv
+testCheckInstrWhileError =  checkInstr [("x", (Local, TypeInt))] (While (Val 5) [Assign "x" (Val 5)]) GlobalScope
+-- Expected Right Left "Type error in While condition"
+
+testCheckInstrIf :: Either String TypeEnv
+testCheckInstrIf = checkInstr [("x", (Local, TypeInt))] (If (BVal True) [Assign "x" (Val 5)]) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckInstrIfError :: Either String TypeEnv
+testCheckInstrIfError =  checkInstr [("x", (Local, TypeInt))] (If (Val 5) [Assign "x" (Val 5)]) GlobalScope
+-- Expected: Left "Type error in if condition"
+
+testCheckInstrIfElse :: Either String TypeEnv
+testCheckInstrIfElse = checkInstr [("x", (Local, TypeInt)), ("y", (Local, TypeInt))] (IfElse (BVal True) [Assign "x" (Val 5)] [Assign "y" (Val 6)]) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt)), ("y", (Local, TypeInt))]
+
+testCheckInstrIfElseError :: Either String TypeEnv
+testCheckInstrIfElseError =  checkInstr [("x", (Local, TypeInt))] (IfElse (Val 5) [Assign "x" (Val 5)] []) GlobalScope
+-- Expected: Left "Type error in if else condition"
+
+testCheckInstrPrint :: Either String TypeEnv
+testCheckInstrPrint = checkInstr [("x", (Local, TypeInt))] (Print (Var "x")) GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckInstrPrintError :: Either String TypeEnv
+testCheckInstrPrintError = checkInstr [] (Print (Var "x")) GlobalScope
+-- Expected: Left "Variable x not found in scope."
+
+testCheckInstrLock :: Either String TypeEnv
+testCheckInstrLock = checkInstr [("l", (Local, TypeLock))] (Lock "l") GlobalScope
+-- Expected: Right [("l", (Local, TypeLock))]
+
+testCheckInstrLockError :: Either String TypeEnv
+testCheckInstrLockError = checkInstr [("l", (Local, TypeInt))] (Lock "l") GlobalScope
+-- Expected: Left "Type error in lock instruction to l"
+
+testCheckInstrUnlock :: Either String TypeEnv
+testCheckInstrUnlock = checkInstr [("l", (Local, TypeLock))] (Unlock "l") GlobalScope
+-- Expected: Right [("l", (Local, TypeLock))]
+
+testCheckInstrUnlockError :: Either String TypeEnv
+testCheckInstrUnlockError =  checkInstr [("l", (Local, TypeInt))] (Unlock "l") GlobalScope
+-- Expected: Left "Type error in unlock instruction to l"
+
+testCheckInstrFork :: Either String TypeEnv
+testCheckInstrFork = checkInstr [] (Fork Nothing []) GlobalScope
+-- Expected: Right []
+
+testCheckInstrForkError :: Either String TypeEnv
+testCheckInstrForkError =  checkInstr [] (Fork Nothing[]) ControlScope
+-- Expected: Left "Cannot enter fork from outside global scope"
+
+-- Test cases for checkProgram
+testCheckProgram :: Either String TypeEnv
+testCheckProgram = checkProg [] [Decl Local TypeInt "x" (Just (Val 5)), While (BVal True) [Assign "x" (Val 6)]] GlobalScope
+-- Expected: Right [("x", (Local, TypeInt))]
+
+testCheckProgramError_1 :: Either String TypeEnv
+testCheckProgramError_1 = checkProg [] [Decl Local TypeInt "f1" (Just (Val 0)),Fork Nothing [Decl Local TypeInt "f2" (Just (Val 1)),Print (Var "f1")]] GlobalScope
+-- Expected: Left "Variable f1 not found."
+
+testCheckProgramError_2 :: Either String TypeEnv
+testCheckProgramError_2 = checkProg [] [Decl Local TypeLock "l" Nothing] GlobalScope
+-- Expected: Left "Cannot declare lock with local scope"
+
+testCheckProgramError_3 :: Either String TypeEnv
+testCheckProgramError_3 = checkProg [] [Decl Local TypeInt "a" (Just (Val 1)),If (BVal True) [Decl Local TypeInt "a" (Just (Val 2)),Print (Var "a")],Print (Var "a")] GlobalScope
+-- Expected: Left "Duplicate declaration of variable: a"
+
+testCheckProgramError_4 :: Either String TypeEnv
+testCheckProgramError_4 = checkProg [] [Fork Nothing [Decl Shared TypeInt "a" Nothing]] GlobalScope
+-- Expected: Left "Cannot declare shared variable in local scope"
+
+testCheckProgramError_5 :: Either String TypeEnv
+testCheckProgramError_5 = checkProg [] [If (BVal True) [Decl Shared TypeInt "a" Nothing]] GlobalScope
+-- Expected: Left "Cannot declare shared variable in local scope"
+
+testCheckProgramError_6 :: Either String TypeEnv
+testCheckProgramError_6 = checkProg [] [If (BVal True) [Fork Nothing []]] GlobalScope
+-- Expected: Left "Cannot enter fork from outside global scope"
+
+testCheckProgramError_7 :: Either String TypeEnv
+testCheckProgramError_7 = checkProg [] [If (BVal True) [Decl Local TypeInt "a" (Just (Val 1))],Print (Var "a")] GlobalScope
+-- Expected: Left "Variable a not found in scope."
+
+testCheckProgramError_8 :: Either String TypeEnv
+testCheckProgramError_8 = checkProg [] [Print (Var "a"),Decl Local TypeInt "a" (Just (Val 10))] GlobalScope
+-- Expected: Left "Variable a not found in scope."
+
+testCheckProgramError_9 :: Either String TypeEnv
+testCheckProgramError_9 = checkProg [] [Fork Nothing [Print (Var "a")],Decl Shared TypeInt "a" (Just (Val 10))] GlobalScope
+-- Expected: Left "Variable a not found in scope."
+
+-- #####################################################################################################################
+-- #                                               Program Optimizations                                               #
+-- #####################################################################################################################
+
+-- Test cases for optimizeExpr
+testOptimizeExprVal :: Expr
+testOptimizeExprVal = either error id (optimizeExpr [] (Val 5))
+-- expected: Val 5
+
+testOptimizeExprBValTrue :: Expr
+testOptimizeExprBValTrue = either error id (optimizeExpr [] (BVal True))
+-- expected: Val 1
+
+testOptimizeExprBValFalse :: Expr
+testOptimizeExprBValFalse = either error id (optimizeExpr [] (BVal False))
+-- expected: Val 0
+
+testOptimizeExprVar :: Expr
+testOptimizeExprVar = either error id (optimizeExpr [("x", "x1")] (Var "x"))
+-- expected: Var "x1"
+
+testOptimizeExprNotOp :: Expr
+testOptimizeExprNotOp = either error id (optimizeExpr [("x", "x1")] (NotOp (Var "x")))
+-- expected: NotOp (Var "x1")
+
+testOptimizeExprBinOp :: Expr
+testOptimizeExprBinOp = either error id (optimizeExpr [("x", "x1"), ("y", "y1")] (BinOp AddS (Var "x") (Var "y")))
+-- expected: BinOp AddS (Var "x1") (Var "y1")
+
+-- Test cases for optimizeInstr
+testOptimizeInstrDecl :: Instr
+testOptimizeInstrDecl = either error id (optimizeInstr (Decl Local TypeInt "x" Nothing) [] 0)
+-- expected: (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
+
+testOptimizeInstrDeclInit :: Instr
+testOptimizeInstrDeclInit = either error id (optimizeInstr (Decl Local TypeInt "x" (Just (Val 5))) [] 0)
+-- expected: (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
+
+testOptimizeInstrAssign :: Instr
+testOptimizeInstrAssign = either error id (optimizeInstr (Assign "x" (Val 5)) [("x", "x1")] 0)
+-- expected: (Assign "x1" (Val 5), [("x", "x1")], 0)
+
+testOptimizeInstrWhile :: Instr
+testOptimizeInstrWhile = either error id (optimizeInstr (While (BVal True) [Print (Var "x")]) [("x", "x1")] 0)
+-- expected: (While (Val 1) [Print (Var "x1")], [("x", "x1")], 0)
+
+testOptimizeInstrIfElse :: Instr
+testOptimizeInstrIfElse = either error id (optimizeInstr (IfElse (BVal True) [Print (Var "x")] [Print (Var "y")]) [("x", "x1"), ("y", "y1")] 0)
+-- expected: (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
+
+testOptimizeInstrIf :: Instr
+testOptimizeInstrIf = either error id (optimizeInstr (If (BVal True) [Print (Var "x")]) [("x", "x1")] 0)
+-- expected: (If (Val 1) [Print (Var "x1")], [("x", "x1")], 0)
+
+testOptimizeInstrPrint :: Instr
+testOptimizeInstrPrint = either error id (optimizeInstr (Print (Var "x")) [("x", "x1")] 0)
+-- expected: (Print (Var "x1"), [("x", "x1")], 0)
+
+testOptimizeInstrFork :: Instr
+testOptimizeInstrFork = either error id (optimizeInstr (Fork Nothing [Print (Var "x")]) [("x", "x1")] 0)
+-- expected: (Fork (Just 0) [Print (Var "x1")], [("x", "x1")], 1)
+
+testOptimizeInstrLock :: Instr
+testOptimizeInstrLock = either error id (optimizeInstr (Lock "x") [("x", "x1")] 0)
+-- expected: (Lock "x1", [("x", "x1")], 0)
+
+testOptimizeInstrUnlock :: Instr
+testOptimizeInstrUnlock = either error id (optimizeInstr (Unlock "x") [("x", "x1")] 0)
+-- expected: (Unlock "x1", [("x", "x1")], 0)
+
+-- Test cases for optimizeProg
+testOptimizeProgEmpty :: Program
+testOptimizeProgEmpty = either error fst (optimizeProg [] [] 0)
+-- expected: []
+
+testOptimizeProgSingleDecl :: Program
+testOptimizeProgSingleDecl = either error fst (optimizeProg [Decl Local TypeInt "x" Nothing] [] 0)
+-- expected: [Decl Local TypeInt "$0" Nothing]
+
+testOptimizeProgMultipleInstrs :: Program
+testOptimizeProgMultipleInstrs = either error fst (optimizeProg [Decl Local TypeInt "x" (Just (Val 5)), Assign "x" (Val 10)] [] 0)
+-- expected: [Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)]

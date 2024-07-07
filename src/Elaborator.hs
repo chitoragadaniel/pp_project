@@ -95,13 +95,13 @@ checkInstr env (Assign var expr) context =
 checkInstr env (While expr prog) _ =
     case (inferExprType env expr, checkProg env prog ControlScope) of
         (Right TypeBool, Right _) -> Right env
-        (Right _, Right _) -> Left "Type error in if condition"
+        (Right _, Right _) -> Left "Type error in While condition"
         (Left err, _) -> Left err
         (_, Left err) -> Left err
 checkInstr env (IfElse expr prog1 prog2) _ =
     case (inferExprType env expr, checkProg env prog1 ControlScope, checkProg env prog2 ControlScope) of
         (Right TypeBool, Right _, Right _) -> Right env
-        (Right _, Right _, Right _) -> Left "Type error in if condition"
+        (Right _, Right _, Right _) -> Left "Type error in if else condition"
         (Left err, _, _) -> Left err
         (_, Left err, _) -> Left err
         (_, _, Left err) -> Left err
@@ -140,7 +140,7 @@ checkInstr env (Unlock var) _=
 -- Changes Boolean values into Integer values (true -> 1, false -> 0)
 -- Number fork instructions sequentially.
 
--- Type environment: map variable names to their types
+-- Type environment: map variable names to their new types
 type VarEnv = [(String, String)]
 
 -- Function to get the type of a variable from the environment
@@ -149,6 +149,7 @@ lookupVarName var env = case lookup var env of
     Just t  -> Right t
     Nothing -> Left $ "Variable " ++ var ++ " not found."
 
+-- Function to generate a new variable name
 getNewVarName :: VarEnv -> String
 getNewVarName env = "$" ++ show (length env)
 
@@ -243,39 +244,3 @@ optimizeExpr env (BinOp op l r) =
 
 exampleProgram = "int a = 10 bool b = true if (b) {int c = 5 while (c < 10) { c = c + 1 print(c) } fork { int d = 3 print(d) } } lock x lock(x) unlock(x)"
 parsedExampleProgram = [Decl Local TypeInt "a" (Just (Val 10)),Decl Local TypeBool "b" (Just (BVal True)),If (Var "b") [Decl Local TypeInt "c" (Just (Val 5)),While (BinOp LTS (Var "c") (Val 10)) [Assign "c" (BinOp AddS (Var "c") (Val 1)),Print (Var "c")],Fork Nothing [Decl Local TypeInt "d" (Just (Val 3)),Print (Var "d")]],Decl Local TypeLock "x" Nothing,Lock "x",Unlock "x"]
-
--- int f1 = 0 fork { int f2 = 1 print(f1) }
--- [Decl Local TypeInt "f1" (Just (Val 0)),Fork Nothing [Decl Local TypeInt "f2" (Just (Val 1)),Print (Var "f1")]]
--- Left "Variable f1 not found."
-
--- lock l
--- [Decl Local TypeLock "l" Nothing]
--- Left "Cannot declare lock with local scope"
-
--- int a = 1 if (true) { int a = 2 print(a) } print(a)
--- [Decl Local TypeInt "a" (Just (Val 1)),If (BVal True) [Decl Local TypeInt "a" (Just (Val 2)),Print (Var "a")],Print (Var "a")]
--- Left "Duplicate declaration of variable: a"
-
--- fork {shared int a}
--- [Fork Nothing [Decl Shared TypeInt "a" Nothing]]
--- Left "Cannot declare shared variable in local scope"
-
--- if (true) {shared int a}
--- [If (BVal True) [Decl Shared TypeInt "a" Nothing]]
--- Left "Cannot declare shared variable in local scope"
-
--- if (true) {fork {}}
--- [If (BVal True) [Fork Nothing []]]
--- Left "Cannot enter fork from outside global scope"
-
--- if(true) { int a = 1 } print(a)
--- [If (BVal True) [Decl Local TypeInt "a" (Just (Val 1))],Print (Var "a")]
--- Left "Variable a not found in scope."
-
--- print(a) int a = 10
--- [Print (Var "a"),Decl Local TypeInt "a" (Just (Val 10))]
--- Left "Variable a not found in scope."
-
--- fork { print(a) } shared int a = 10
--- [Fork Nothing [Print (Var "a")],Decl Shared TypeInt "a" (Just (Val 10))]
--- Left "Variable a not found in scope."
