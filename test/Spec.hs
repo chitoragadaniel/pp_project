@@ -10,6 +10,202 @@ import Control.Exception
 
 main :: IO ()
 main = hspec $ do
+--  describe "Parsing" $ do
+--    describe "Parses Types" $ do
+--      it "Parses type bool" $ do
+--        testParseTypeBool `shouldBe` Right TypeBool
+--      it "Parses type Int" $ do
+--        testParseTypeInt `shouldBe` Right TypeInt
+--      it "Parses type Lock" $ do
+--        testParseTypeLock `shouldBe` Right TypeLock
+--    describe "Parses Scopes" $ do
+--      it "Parses local scope" $ do
+--        testParseScopeLocal `shouldBe` Right Local
+--      it "Parses shared scope" $ do
+--        testParseScopeShared `shouldBe` Right Shared
+--    describe "Parses Expressions"
+--      it "Parses integer value" $ do
+--        testParseExprInt `shouldBe` Right (Val 5)
+--      it "Parses boolean value true" $ do
+--        testParseExprBoolTrue `shouldBe` Right (BVal True)
+--      it "Parses boolean value false" $ do
+--        testParseExprBoolFalse `shouldBe` Right (BVal False)
+--      it "Parses variables" $ do
+--        testParseExprVar `shouldBe` Right (Var "x")
+--      it "Parses addition/subtraction expressions" $ do
+--        testParseExprAddition `shouldBe` Right (BinOp AddS (Var "x") (Val 5))
+--      it "Parses logical expressions" $ do
+--        testParseExprLogicalAnd `shouldBe` Right (BinOp EQS (Var "x") (Var "y"))
+--      it "Parses comparison expressions" $ do
+--        testParseExprComparison `shouldBe` Right (BinOp EQS (Var "x") (Var "y"))
+--    describe "Parses Instuctions" $ do
+--      it "Parses declaration instructions" $ do
+--        testParseInstrDecl `shouldBe` Right (Decl Local TypeInt "x" Nothing)
+--      it "Parses declaration instructions with initialization" $ do
+--        testParseInstrDeclInit `shouldBe` Right (Decl Local TypeInt "x" (Just (Val 5)))
+--      it "Parses assign instructions" $ do
+--        testParseInstrAssign `shouldBe` Right (Assign "x" (Val 5))
+--      it "Parses while instructions" $ do
+--        testParseInstrWhile `shouldBe` Right (While (BVal True) [Decl Local TypeInt "x" (Just (Val 5))])
+--      it "Parses if else instructions" $ do
+--        testParseInstrIfElse `shouldBe` Right (IfElse (BVal True) [Decl Local TypeInt "x" (Just (Val 5))] [Decl Local TypeInt "y" (Just (Val 6))])
+--      it "Parses if instructions" $ do
+--        testParseInstrIf `shouldBe` Right (If (BVal True) [Decl Local TypeInt "x" (Just (Val 5))])
+--      it "Parses print instructions" $ do
+--        testParseInstrPrint `shouldBe` Right (Print (Var "x"))
+--      it "Parses lock instructions" $ do
+--        testParseInstrLock `shouldBe` Right (Lock "l")
+--      it "Parses unlock instructions" $ do
+--        testParseInstrUnlock `shouldBe` Right (Unlock "l")
+--      it "Parses fork instructions" $ do
+--        testParseInstrFork `shouldBe` Right (Fork Nothing [Decl Local TypeInt "x" (Just (Val 5))])
+--    descibe "Parses Programs"
+--      it "Parses a program" $ do
+--        testParseProgram `shouldBe` Right [Decl Local TypeInt "x" (Just (Val 5)), While (BVal True) [Decl Local TypeInt "y" (Just (Val 6))]]
+--      it "Parses a program with comments" $ do
+--        testParseWithComment `shouldBe` Right [Decl Local TypeInt "x" (Just (Val 5)), Decl Local TypeInt "y" (Just (Val 6))]
+--      it "Does not parse a program with incomplete instructions" $ do
+--        testParseErrorIncompleteInstr `shouldBe` Left _
+--      it "Does not parse a program with incomplete expressions" $ do
+--        testParseErrorIncompleteExpr `shouldBe` Left _
+--      it "Does not parse a program with invalid input" $ do
+--        testParseErrorInvalidInput `shouldBe` Left _
+--  describe "Type Checking" $ do
+--    describe "Get types for variables" $ do
+--      it "Gets types for declared variable" $ do
+--        testLookupVarTypeFound `shouldBe` Right TypeInt
+--      it "Does not get types for undeclared variables" $ do
+--        testLookupVarTypeNotFound `shouldBe` Left "Variable y not found"
+--    describe "Infers types of expressions" $ do
+--      it "Infers type of integers" $ do
+--        testInferExprTypeVal `shouldBe` Right TypeInt
+--      it "Infers type of booleans" $ do
+--        testInferExprTypeBVal `shouldBe` Right TypeBool
+--      it "Infers type of variables" $ do
+--        testInferExprTypeVar `shouldBe` Right TypeInt
+--      it "Infers type of unary expressions" $ do
+--        testInferExprTypeNotOp `shouldBe` Right TypeBool
+--      it "Does not Infer type of incorrect unary expressions" $ do
+--        testInferExprTypeNotOpError `shouldBe` Left "Type error in NotOp"
+--      it "Infers type of Binary operation expressions" $ do
+--        testInferExprTypeBinOpAdd `shouldBe` Right TypeInt
+--      it "Does not infer types of mismatched binary operations" $ do
+--        testInferExprTypeBinOpError `shouldBe` Left "Type error in BinOp"
+--    describe "Type checks instructions" $ do
+--      it "" $ do
+--        testCheckInstrDecl `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrDeclInit `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrDeclTypeError `shouldBe` Left "Type error in Decl of x"
+--      it "" $ do
+--        testCheckInstrDeclForkScopeError `shouldBe` Left "Cannot declare shared variable in local scope"
+--      it "" $ do
+--        testCheckInstrDeclControlScopeError `shouldBe` Left "Cannot declare shared variable in local scope"
+--      it "" $ do
+--        testCheckInstrDeclLockError `shouldBe` Left "Cannot declare lock with local scope"
+--      it "" $ do
+--        testCheckInstrDeclDuplicateDeclarationError `shouldBe` Left "Duplicate declaration of variable: x"
+--      it "" $ do
+--        testCheckInstrAssign `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrAssignError `shouldBe` Left "Type error in Assign"
+--      it "" $ do
+--        testCheckInstrWhile `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrWhileError `shouldBe` Left "Type error in While condition"
+--      it "" $ do
+--        testCheckInstrIf `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrIfError `shouldBe` Left "Type error in if condition"
+--      it "" $ do
+--        testCheckInstrIfElse `shouldBe` Right [("x", (Local, TypeInt)), ("y", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrIfElseError `shouldBe` Left "Type error in if else condition"
+--      it "" $ do
+--        testCheckInstrPrint `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckInstrPrintError `shouldBe` Left "Variable x not found in scope."
+--      it "" $ do
+--        testCheckInstrLock `shouldBe` Expected: Right [("l", (Local, TypeLock))]
+--      it "" $ do
+--        testCheckInstrLockError `shouldBe` Left "Type error in lock instruction to l"
+--      it "" $ do
+--        testCheckInstrUnlock `shouldBe` Right [("l", (Local, TypeLock))]
+--      it "" $ do
+--        testCheckInstrUnlockError `shouldBe` Left "Type error in unlock instruction to l"
+--      it "" $ do
+--        testCheckInstrFork `shouldBe` Right []
+--      it "" $ do
+--        testCheckInstrForkError `shouldBe` Left "Cannot enter fork from outside global scope"
+--    describe "Type checks programs" $ do
+--      it "" $ do
+--        testCheckProgram `shouldBe` Right [("x", (Local, TypeInt))]
+--      it "" $ do
+--        testCheckProgramError_1 `shouldBe` Left "Variable f1 not found."
+--      it "" $ do
+--        testCheckProgramError_2 `shouldBe` Left "Cannot declare lock with local scope"
+--      it "" $ do
+--        testCheckProgramError_3 `shouldBe` Left "Duplicate declaration of variable: a"
+--      it "" $ do
+--        testCheckProgramError_4 `shouldBe` Left "Cannot declare shared variable in local scope"
+--      it "" $ do
+--        testCheckProgramError_5 `shouldBe` Left "Cannot declare shared variable in local scope"
+--      it "" $ do
+--        testCheckProgramError_6 `shouldBe` Left "Cannot enter fork from outside global scope"
+--      it "" $ do
+--        testCheckProgramError_7 `shouldBe` Left "Variable a not found in scope."
+--      it "" $ do
+--        testCheckProgramError_8 `shouldBe` Left "Variable a not found in scope."
+--      it "" $ do
+--        testCheckProgramError_9 `shouldBe` Left "Variable a not found in scope."
+--  describe "Program Optimizations" $ do
+--    describe "Gets updated variabled names" $ do
+--      it "Gets the update variable name when variable is declared" $ do
+--        testLookupVarNameFound `shouldBe` Right TypeInt
+--      it "Does not get updated variable name when variable is undeclared" $ do
+--        testLookupVarNameNotFound `shouldBe` Left "Variable y not found"
+--    describe "Optimizes expressions" $ do
+--      it "" $ do
+--        testOptimizeExprVal = `shouldBe` Right (Val 5)
+--      it "" $ do
+--        testOptimizeExprBValTrue `shouldBe` Right (Val 1)
+--      it "" $ do
+--        testOptimizeExprBValFalse `shouldBe` Right (Val 0)
+--      it "" $ do
+--        testOptimizeExprVar `shouldBe` Right (Var "$0")
+--      it "" $ do
+--        testOptimizeExprNotOp `shouldBe` Right (NotOp (Var "$0"))
+--      it "" $ do
+--        testOptimizeExprBinOp `shouldBe` Right (BinOp AddS (Var "$0") (Var "$1"))
+--    describe "Optimizes Instructions" $ do
+--      it "" $ do
+--        testOptimizeInstrDecl `shouldBe` Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
+--      it "" $ do
+--        testOptimizeInstrDeclInit `shouldBe` Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
+--      it "" $ do
+--        testOptimizeInstrAssign `shouldBe` Right (Assign "$0" (Val 5), [("x", "$0")], 0)
+--      it "" $ do
+--        testOptimizeInstrWhile `shouldBe` Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
+--      it "" $ do
+--        testOptimizeInstrIfElse `shouldBe` Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
+--      it "" $ do
+--        testOptimizeInstrIf `shouldBe` Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
+--      it "" $ do
+--        testOptimizeInstrPrint `shouldBe` Right (Print (Var "x1"), [("x", "$0")], 0)
+--      it "" $ do
+--        testOptimizeInstrFork `shouldBe` Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1)
+--       it "" $ do
+--        testOptimizeInstrLock `shouldBe` Right (Lock "$0", [("x", "$0")], 0)
+--       it "" $ do
+--        testOptimizeInstrUnlock `shouldBe` Right (Unlock "$0", [("x", "$0")], 0)
+--    describe "Optimizes Programs" $ do
+--      it "" $ do
+--        testOptimizeProgEmpty `shouldBe` Right ([], 0)
+--      it "" $ do
+--        testOptimizeProgSingleDecl `shouldBe` Right ([Decl Local TypeInt "$0" Nothing], 0)
+--      it "" $ do
+--        testOptimizeProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)
   describe "Language (running code)" $ do
     it "shows that a thread can't access local variables of other threads" $ do
       runFile "./test/demos/p0" `shouldThrow` anyException
@@ -361,6 +557,10 @@ testParseInstrIfElse :: Either ParseError Instr
 testParseInstrIfElse = parse parseInstr "" "if (true) { int x = 5; } else { int y = 6 }"
 -- expected: Right (IfElse (BVal True) [Decl Local TypeInt "x" (Just (Val 5))] [Decl Local TypeInt "y" (Just (Val 6))])
 
+testParseInstrIf :: Either ParseError Instr
+testParseInstrIf = parse parseInstr "" "if (true) { int x = 5; }"
+-- expected: Right (If (BVal True) [Decl Local TypeInt "x" (Just (Val 5))])
+
 testParseInstrPrint :: Either ParseError Instr
 testParseInstrPrint = parse parseInstr "" "print(x)"
 -- expected: Right (Print (Var "x"))
@@ -440,7 +640,7 @@ testInferExprTypeBinOpAdd = inferExprType [("x", (Local, TypeInt)), ("y", (Local
 
 testInferExprTypeBinOpError :: Either String Type
 testInferExprTypeBinOpError = inferExprType [("x", (Local, TypeInt)), ("y", (Local, TypeBool))] (BinOp AddS (Var "x") (Var "y"))
--- Expected: "Type error in BinOp"
+-- Expected: Left "Type error in BinOp"
 
 -- Test cases for checkInstr
 testCheckInstrDecl :: Either String TypeEnv
@@ -485,7 +685,7 @@ testCheckInstrWhile = checkInstr [("x", (Local, TypeInt))] (While (BVal True) [A
 
 testCheckInstrWhileError :: Either String TypeEnv
 testCheckInstrWhileError =  checkInstr [("x", (Local, TypeInt))] (While (Val 5) [Assign "x" (Val 5)]) GlobalScope
--- Expected Right Left "Type error in While condition"
+-- Expected: Left "Type error in While condition"
 
 testCheckInstrIf :: Either String TypeEnv
 testCheckInstrIf = checkInstr [("x", (Local, TypeInt))] (If (BVal True) [Assign "x" (Val 5)]) GlobalScope
@@ -580,81 +780,90 @@ testCheckProgramError_9 = checkProg [] [Fork Nothing [Print (Var "a")],Decl Shar
 -- #                                               Program Optimizations                                               #
 -- #####################################################################################################################
 
+-- Test cases for lookupVarName
+testLookupVarNameFound :: Either String String
+testLookupVarNameFound = lookupVarName "x" [("x", "$0")]
+-- expected: Right TypeInt
+
+testLookupVarNameNotFound :: Either String String
+testLookupVarNameNotFound = lookupVarName "y" [("x", "$0")]
+-- expected: Left "Variable y not found"
+
 -- Test cases for optimizeExpr
-testOptimizeExprVal :: Expr
-testOptimizeExprVal = either error id (optimizeExpr [] (Val 5))
--- expected: Val 5
+testOptimizeExprVal :: Either String Expr
+testOptimizeExprVal = optimizeExpr [] (Val 5)
+-- expected: Right (Val 5)
 
-testOptimizeExprBValTrue :: Expr
-testOptimizeExprBValTrue = either error id (optimizeExpr [] (BVal True))
--- expected: Val 1
+testOptimizeExprBValTrue :: Either String Expr
+testOptimizeExprBValTrue = optimizeExpr [] (BVal True)
+-- expected: Right (Val 1)
 
-testOptimizeExprBValFalse :: Expr
-testOptimizeExprBValFalse = either error id (optimizeExpr [] (BVal False))
--- expected: Val 0
+testOptimizeExprBValFalse :: Either String Expr
+testOptimizeExprBValFalse = optimizeExpr [] (BVal False)
+-- expected: Right (Val 0)
 
-testOptimizeExprVar :: Expr
-testOptimizeExprVar = either error id (optimizeExpr [("x", "x1")] (Var "x"))
--- expected: Var "x1"
+testOptimizeExprVar :: Either String Expr
+testOptimizeExprVar = optimizeExpr [("x", "$0")] (Var "x")
+-- expected: Right (Var "$0")
 
-testOptimizeExprNotOp :: Expr
-testOptimizeExprNotOp = either error id (optimizeExpr [("x", "x1")] (NotOp (Var "x")))
--- expected: NotOp (Var "x1")
+testOptimizeExprNotOp :: Either String Expr
+testOptimizeExprNotOp = optimizeExpr [("x", "$0")] (NotOp (Var "x"))
+-- expected: Right (NotOp (Var "$0"))
 
-testOptimizeExprBinOp :: Expr
-testOptimizeExprBinOp = either error id (optimizeExpr [("x", "x1"), ("y", "y1")] (BinOp AddS (Var "x") (Var "y")))
--- expected: BinOp AddS (Var "x1") (Var "y1")
+testOptimizeExprBinOp :: Either String Expr
+testOptimizeExprBinOp = optimizeExpr [("x", "$0"), ("y", "$1")] (BinOp AddS (Var "x") (Var "y"))
+-- expected: Right (BinOp AddS (Var "$0") (Var "$1"))
 
 -- Test cases for optimizeInstr
-testOptimizeInstrDecl :: Instr
-testOptimizeInstrDecl = either error id (optimizeInstr (Decl Local TypeInt "x" Nothing) [] 0)
--- expected: (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
+testOptimizeInstrDecl :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrDecl = optimizeInstr (Decl Local TypeInt "x" Nothing) [] 0
+-- expected: Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
 
-testOptimizeInstrDeclInit :: Instr
-testOptimizeInstrDeclInit = either error id (optimizeInstr (Decl Local TypeInt "x" (Just (Val 5))) [] 0)
--- expected: (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
+testOptimizeInstrDeclInit :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrDeclInit = optimizeInstr (Decl Local TypeInt "x" (Just (Val 5))) [] 0
+-- expected: Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
 
-testOptimizeInstrAssign :: Instr
-testOptimizeInstrAssign = either error id (optimizeInstr (Assign "x" (Val 5)) [("x", "x1")] 0)
--- expected: (Assign "x1" (Val 5), [("x", "x1")], 0)
+testOptimizeInstrAssign :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrAssign = optimizeInstr (Assign "x" (Val 5)) [("x", "$0")] 0
+-- expected: Right (Assign "$0" (Val 5), [("x", "$0")], 0)
 
-testOptimizeInstrWhile :: Instr
-testOptimizeInstrWhile = either error id (optimizeInstr (While (BVal True) [Print (Var "x")]) [("x", "x1")] 0)
--- expected: (While (Val 1) [Print (Var "x1")], [("x", "x1")], 0)
+testOptimizeInstrWhile :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrWhile = optimizeInstr (While (BVal True) [Print (Var "x")]) [("x", "$0")] 0
+-- expected: Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
 
-testOptimizeInstrIfElse :: Instr
-testOptimizeInstrIfElse = either error id (optimizeInstr (IfElse (BVal True) [Print (Var "x")] [Print (Var "y")]) [("x", "x1"), ("y", "y1")] 0)
--- expected: (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
+testOptimizeInstrIfElse :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrIfElse = optimizeInstr (IfElse (BVal True) [Print (Var "x")] [Print (Var "y")]) [("x", "$0"), ("y", "$1")] 0
+-- expected: Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
 
-testOptimizeInstrIf :: Instr
-testOptimizeInstrIf = either error id (optimizeInstr (If (BVal True) [Print (Var "x")]) [("x", "x1")] 0)
--- expected: (If (Val 1) [Print (Var "x1")], [("x", "x1")], 0)
+testOptimizeInstrIf :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrIf = optimizeInstr (If (BVal True) [Print (Var "x")]) [("x", "$0")] 0
+-- expected: Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
 
-testOptimizeInstrPrint :: Instr
-testOptimizeInstrPrint = either error id (optimizeInstr (Print (Var "x")) [("x", "x1")] 0)
--- expected: (Print (Var "x1"), [("x", "x1")], 0)
+testOptimizeInstrPrint :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrPrint = optimizeInstr (Print (Var "x")) [("x", "$0")] 0
+-- expected: Right (Print (Var "x1"), [("x", "$0")], 0)
 
-testOptimizeInstrFork :: Instr
-testOptimizeInstrFork = either error id (optimizeInstr (Fork Nothing [Print (Var "x")]) [("x", "x1")] 0)
--- expected: (Fork (Just 0) [Print (Var "x1")], [("x", "x1")], 1)
+testOptimizeInstrFork :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrFork = optimizeInstr (Fork Nothing [Print (Var "x")]) [("x", "$0")] 0
+-- expected: Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1)
 
-testOptimizeInstrLock :: Instr
-testOptimizeInstrLock = either error id (optimizeInstr (Lock "x") [("x", "x1")] 0)
--- expected: (Lock "x1", [("x", "x1")], 0)
+testOptimizeInstrLock :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrLock = optimizeInstr (Lock "x") [("x", "$0")] 0
+-- expected: Right (Lock "$0", [("x", "$0")], 0)
 
-testOptimizeInstrUnlock :: Instr
-testOptimizeInstrUnlock = either error id (optimizeInstr (Unlock "x") [("x", "x1")] 0)
--- expected: (Unlock "x1", [("x", "x1")], 0)
+testOptimizeInstrUnlock :: Either String (Instr, VarEnv, Int)
+testOptimizeInstrUnlock = optimizeInstr (Unlock "x") [("x", "$0")] 0
+-- expected: Right (Unlock "$0", [("x", "$0")], 0)
 
 -- Test cases for optimizeProg
-testOptimizeProgEmpty :: Program
-testOptimizeProgEmpty = either error fst (optimizeProg [] [] 0)
--- expected: []
+testOptimizeProgEmpty ::Either String (Program, Int)
+testOptimizeProgEmpty = optimizeProg [] [] 0
+-- expected: Right ([], 0)
 
-testOptimizeProgSingleDecl :: Program
-testOptimizeProgSingleDecl = either error fst (optimizeProg [Decl Local TypeInt "x" Nothing] [] 0)
--- expected: [Decl Local TypeInt "$0" Nothing]
+testOptimizeProgSingleDecl :: Either String (Program, Int)
+testOptimizeProgSingleDecl = optimizeProg [Decl Local TypeInt "x" Nothing] [] 0
+-- expected: Right ([Decl Local TypeInt "$0" Nothing], 0)
 
-testOptimizeProgMultipleInstrs :: Program
-testOptimizeProgMultipleInstrs = either error fst (optimizeProg [Decl Local TypeInt "x" (Just (Val 5)), Assign "x" (Val 10)] [] 0)
--- expected: [Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)]
+testOptimizeProgMultipleInstrs :: Either String (Program, Int)
+testOptimizeProgMultipleInstrs = optimizeProg [Decl Local TypeInt "x" (Just (Val 5)), Assign "x" (Val 10)] [] 0
+-- expected: Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)

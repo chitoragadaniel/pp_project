@@ -240,7 +240,3 @@ optimizeExpr env (BinOp op l r) =
       (Right l', Right r') -> Right (BinOp op l' r')
       (Left err, _) -> Left err
       (_, Left err) -> Left err
-
-
-exampleProgram = "int a = 10 bool b = true if (b) {int c = 5 while (c < 10) { c = c + 1 print(c) } fork { int d = 3 print(d) } } lock x lock(x) unlock(x)"
-parsedExampleProgram = [Decl Local TypeInt "a" (Just (Val 10)),Decl Local TypeBool "b" (Just (BVal True)),If (Var "b") [Decl Local TypeInt "c" (Just (Val 5)),While (BinOp LTS (Var "c") (Val 10)) [Assign "c" (BinOp AddS (Var "c") (Val 1)),Print (Var "c")],Fork Nothing [Decl Local TypeInt "d" (Just (Val 3)),Print (Var "d")]],Decl Local TypeLock "x" Nothing,Lock "x",Unlock "x"]
