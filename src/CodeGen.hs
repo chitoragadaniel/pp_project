@@ -244,38 +244,38 @@ whileProgram =
 threadSafeProgram :: Program
 threadSafeProgram =
   [ Decl Shared TypeInt "a" $ Just $ Val 10
-  , Decl Shared TypeLock "lock" Nothing
-  , Fork (Just 1) [ Lock "lock"
-                  , Print $ Var "a"
-                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
-                  , Unlock "lock"
-                  ]
-  , Fork (Just 2) [ Lock "lock"
-                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
-                  , Print $ Var "a"
-                  , Unlock "lock"
-                  ]
-  , Fork (Just 3) [ Lock "lock"
-                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
-                  , Print $ Var "a"
-                  , Unlock "lock"
-                  ]
-  , Fork (Just 4) [ Lock "lock"
-                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
-                  , Print $ Var "a"
-                  , Unlock "lock"
-                  ]
-  , Fork (Just 5) [ Lock "lock"
-                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
-                  , Print $ Var "a"
-                  , Unlock "lock"
-                  ]
-  , Fork (Just 6) [ Lock "lock"
-                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
-                  , Print $ Var "a"
-                  , Unlock "lock"
-                  ]
+  , Decl Shared TypeLock "l" Nothing
   , Print $ Var "a"
+  , Fork (Just 1) [ Lock "l"
+                  , Print $ Var "a"
+                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
+                  , Unlock "l"
+                  ]
+  , Fork (Just 2) [ Lock "l"
+                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
+                  , Print $ Var "a"
+                  , Unlock "l"
+                  ]
+  , Fork (Just 3) [ Lock "l"
+                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
+                  , Print $ Var "a"
+                  , Unlock "l"
+                  ]
+  , Fork (Just 4) [ Lock "l"
+                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
+                  , Print $ Var "a"
+                  , Unlock "l"
+                  ]
+  , Fork (Just 5) [ Lock "l"
+                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
+                  , Print $ Var "a"
+                  , Unlock "l"
+                  ]
+  , Fork (Just 6) [ Lock "l"
+                  , Assign "a" $ BinOp AddS (Var "a") (Val 1)
+                  , Print $ Var "a"
+                  , Unlock "l"
+                  ]
   ]
 
 
