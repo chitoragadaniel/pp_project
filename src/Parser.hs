@@ -82,7 +82,7 @@ parseInstr = try (Decl <$> parseScope
            <|> try (Print <$> (reserved "print" *> (parens parseExpr)))
            <|> try (Fork <$> (reserved "fork" *> pure Nothing) <*> (braces parseProgram))
            <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
-           <|> try (Unlock <$> (reserved "unlock" *> (parens identifier)))
+           <|> (Unlock <$> (reserved "unlock" *> (parens identifier)))
 
 parseExpr :: Parser Expr
 parseExpr = parseOrExpr
@@ -123,7 +123,7 @@ parseAddSubOp = try (reservedOp "+" >> pure AddS)
             <|> (reservedOp "-" >> pure SubS)
 
 parseMultOp :: Parser Op
-parseMultOp = reservedOp "*" >> pure MultS
+parseMultOp = (reservedOp "*" >> pure MultS)
 
 parseComparisonOp :: Parser Op
 parseComparisonOp = try (reservedOp "==" >> pure EQS)
@@ -131,10 +131,10 @@ parseComparisonOp = try (reservedOp "==" >> pure EQS)
                 <|> (reservedOp "<" >> pure LTS)
 
 parseAndOp :: Parser Op
-parseAndOp = reservedOp "and" >> pure AndS
+parseAndOp = (reservedOp "and" >> pure AndS)
 
 parseOrOp :: Parser Op
-parseOrOp = reservedOp "or" >> pure OrS
+parseOrOp = (reservedOp "or" >> pure OrS)
 
 -- Parser for type
 parseType :: Parser Type
