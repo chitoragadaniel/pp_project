@@ -47,19 +47,19 @@ data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Loc
               | Fork (Maybe Int) Program                -- Starts a new thread; fork {}; (Maybe Int) is the number of the thread. While parsing is Nothing, in elaboration is counted
               | Lock String                             -- Locks a lock; lock(i)
               | Unlock String                           -- Unlocks a lock; unlock(i)
-              deriving Show
+              deriving (Show, Eq)
               
 data Expr     = BinOp Op Expr Expr
               | NotOp Expr
               | Val Int                               -- A integer
               | BVal Bool                             -- boolean value
               | Var String                            -- Using a variable
-              deriving Show
+              deriving (Show, Eq)
 
 data Op = AddS | SubS | MultS                         -- Integer operators
         | EQS | LTS | LTES                            -- Comparison operators
         | AndS | OrS                                  -- Logical operators
-        deriving Show
+        deriving (Show, Eq)
 
 data Type = TypeInt | TypeBool | TypeLock deriving (Show, Eq)
 data Scope = Local | Shared deriving (Show, Eq)
