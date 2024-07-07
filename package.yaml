@@ -15,9 +15,9 @@ dependencies:
 - parsec >= 3.1 && < 3.2
 - sprockell >= 2022.0
 - hspec >= 2.8 && < 2.9
+- hspec-core >= 2.8 && < 2.9
 - QuickCheck >= 2.14 && < 2.15
-- containers
-
+- silently
 
 library:
   source-dirs: src
