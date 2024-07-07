@@ -152,6 +152,12 @@ lookupVarName var env = case lookup var env of
 getNewVarName :: VarEnv -> String
 getNewVarName env = "$" ++ show (length env)
 
+optimizeProgram :: Program -> Program
+optimizeProgram prog =
+    case (optimizeProg prog [] 0) of
+        Right (prog', _) -> prog'
+        Left err -> error err
+
 -- Optimizes a list of instructions
 optimizeProg :: Program -> VarEnv -> Int -> Either String (Program, Int)
 optimizeProg [] env fc = Right ([], fc)
