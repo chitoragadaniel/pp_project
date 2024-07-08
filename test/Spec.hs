@@ -93,120 +93,157 @@ main = hspec $ do
       it "Does not infer types of mismatched binary operations" $ do
         testInferExprTypeBinOpError `shouldBe` Left "Type error in binary operation AddS"
     describe "Type checks instructions" $ do
-      it "" $ do
+      it "Type checks declaration instructions" $ do
         testCheckInstrDecl `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks declaration instructions with value initialization" $ do
         testCheckInstrDeclInit `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks invalid declaration instructions" $ do
         testCheckInstrDeclTypeError `shouldBe` Left "Type error in declaration of x"
-      it "" $ do
+      it "Type checks declaration instructions" $ do
         testCheckInstrDeclForkScopeError `shouldBe` Left "Cannot declare shared variable in local scope"
-      it "" $ do
+      it "Type checks declaration instructions" $ do
         testCheckInstrDeclControlScopeError `shouldBe` Left "Cannot declare shared variable in local scope"
-      it "" $ do
+      it "Type checks declaration instructions" $ do
         testCheckInstrDeclLockError `shouldBe` Left "Cannot declare lock with local scope"
-      it "" $ do
+      it "Type checks declaration instructions" $ do
         testCheckInstrDeclDuplicateDeclarationError `shouldBe` Left "Duplicate declaration of variable: x"
-      it "" $ do
+      it "Type checks assign instructions" $ do
         testCheckInstrAssign `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks assign instructions" $ do
         testCheckInstrAssignError `shouldBe` Left "Type error in assignment to x"
-      it "" $ do
+      it "Type checks while instructions" $ do
         testCheckInstrWhile `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks while instructions" $ do
         testCheckInstrWhileError `shouldBe` Left "Type error in While condition"
-      it "" $ do
+      it "Type checks if instructions" $ do
         testCheckInstrIf `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks if instructions" $ do
         testCheckInstrIfError `shouldBe` Left "Type error in if condition"
-      it "" $ do
+      it "Type checks if else instructions" $ do
         testCheckInstrIfElse `shouldBe` Right [("x", (Local, TypeInt)), ("y", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks if else instructions" $ do
         testCheckInstrIfElseError `shouldBe` Left "Type error in if else condition"
-      it "" $ do
+      it "Type checks print instructions" $ do
         testCheckInstrPrint `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
-        testCheckInstrPrintError `shouldBe` Left "Variable x not found in scope"
-      it "" $ do
-        testCheckInstrLock `shouldBe` Right [("l", (Local, TypeLock))]
-      it "" $ do
+      it "Type checks print instructions" $ do
+        testCheckInstrPrintError `shouldBe` Left "Variable x not found in scope."
+      it "Type checks lock instructions" $ do
+        testCheckInstrLock `shouldBe` Expected: Right [("l", (Local, TypeLock))]
+      it "Type checks lock instructions" $ do
         testCheckInstrLockError `shouldBe` Left "Type error in lock instruction to l"
-      it "" $ do
+      it "Type checks unlock instructions" $ do
         testCheckInstrUnlock `shouldBe` Right [("l", (Local, TypeLock))]
-      it "" $ do
+      it "Type checks unlock instructions" $ do
         testCheckInstrUnlockError `shouldBe` Left "Type error in unlock instruction to l"
-      it "" $ do
+      it "Type checks fork instructions" $ do
         testCheckInstrFork `shouldBe` Right []
-      it "" $ do
+      it "Type checks fork instructions" $ do
         testCheckInstrForkError `shouldBe` Left "Cannot enter fork from outside global scope"
     describe "Type checks programs" $ do
-      it "" $ do
+      it "Type checks valid programs" $ do
         testCheckProgram `shouldBe` Right [("x", (Local, TypeInt))]
-      it "" $ do
+      it "Type checks illegal programs" $ do
         testCheckProgramError_1 `shouldBe` Left "Variable f1 not found in scope"
-      it "" $ do
+      it "Type checks illegal programs" $ do
         testCheckProgramError_2 `shouldBe` Left "Cannot declare lock with local scope"
-      it "" $ do
+      it "Type checks illegal programs" $ do
         testCheckProgramError_3 `shouldBe` Left "Duplicate declaration of variable: a"
-      it "" $ do
+      it "Type checks illegal programs" $ do
         testCheckProgramError_4 `shouldBe` Left "Cannot declare shared variable in local scope"
-      it "" $ do
+      it "Type checks illegal programs" $ do
         testCheckProgramError_5 `shouldBe` Left "Cannot declare shared variable in local scope"
-      it "" $ do
+      it "Type checks illegal programs" $ do
         testCheckProgramError_6 `shouldBe` Left "Cannot enter fork from outside global scope"
-      it "" $ do
-        testCheckProgramError_7 `shouldBe` Left "Variable a not found in scope"
-      it "" $ do
-        testCheckProgramError_8 `shouldBe` Left "Variable a not found in scope"
-      it "" $ do
-        testCheckProgramError_9 `shouldBe` Left "Variable a not found in scope"
---  describe "Program Optimizations" $ do
---    describe "Gets updated variabled names" $ do
---      it "Gets the update variable name when variable is declared" $ do
---        testLookupVarNameFound `shouldBe` Right TypeInt
---      it "Does not get updated variable name when variable is undeclared" $ do
---        testLookupVarNameNotFound `shouldBe` Left "Variable y not found"
---    describe "Optimizes expressions" $ do
---      it "" $ do
---        testOptimizeExprVal = `shouldBe` Right (Val 5)
---      it "" $ do
---        testOptimizeExprBValTrue `shouldBe` Right (Val 1)
---      it "" $ do
---        testOptimizeExprBValFalse `shouldBe` Right (Val 0)
---      it "" $ do
---        testOptimizeExprVar `shouldBe` Right (Var "$0")
---      it "" $ do
---        testOptimizeExprNotOp `shouldBe` Right (NotOp (Var "$0"))
---      it "" $ do
---        testOptimizeExprBinOp `shouldBe` Right (BinOp AddS (Var "$0") (Var "$1"))
---    describe "Optimizes Instructions" $ do
---      it "" $ do
---        testOptimizeInstrDecl `shouldBe` Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
---      it "" $ do
---        testOptimizeInstrDeclInit `shouldBe` Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
---      it "" $ do
---        testOptimizeInstrAssign `shouldBe` Right (Assign "$0" (Val 5), [("x", "$0")], 0)
---      it "" $ do
---        testOptimizeInstrWhile `shouldBe` Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
---      it "" $ do
---        testOptimizeInstrIfElse `shouldBe` Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
---      it "" $ do
---        testOptimizeInstrIf `shouldBe` Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
---      it "" $ do
---        testOptimizeInstrPrint `shouldBe` Right (Print (Var "x1"), [("x", "$0")], 0)
---      it "" $ do
---        testOptimizeInstrFork `shouldBe` Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1)
---       it "" $ do
---        testOptimizeInstrLock `shouldBe` Right (Lock "$0", [("x", "$0")], 0)
---       it "" $ do
---        testOptimizeInstrUnlock `shouldBe` Right (Unlock "$0", [("x", "$0")], 0)
---    describe "Optimizes Programs" $ do
---      it "" $ do
---        testOptimizeProgEmpty `shouldBe` Right ([], 0)
---      it "" $ do
---        testOptimizeProgSingleDecl `shouldBe` Right ([Decl Local TypeInt "$0" Nothing], 0)
---      it "" $ do
---        testOptimizeProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)
+      it "Type checks illegal programs" $ do
+        testCheckProgramError_7 `shouldBe` Left "Variable a not found in scope."
+      it "Type checks illegal programs" $ do
+        testCheckProgramError_8 `shouldBe` Left "Variable a not found in scope."
+      it "Type checks illegal programs" $ do
+        testCheckProgramError_9 `shouldBe` Left "Variable a not found in scope."
+  describe "Program Optimizations" $ do
+    describe "Gets updated variabled names" $ do
+      it "Gets the update variable name when variable is declared" $ do
+        testLookupVarNameFound `shouldBe` Right TypeInt
+      it "Does not get updated variable name when variable is undeclared" $ do
+        testLookupVarNameNotFound `shouldBe` Left "Variable y not found"
+    describe "Elaborates expressions" $ do
+      it "Elaborates value expressions" $ do
+        testElaborateExprVal `shouldBe` Right (Val 5)
+      it "Elaborates boolean value expressions" $ do
+        testElaborateExprBValTrue `shouldBe`Right (BVaL True)
+      it "Elaborates boolean value expressions" $ do
+        testElaborateExprBValFalse `shouldBe` Right (BVal False)
+      it "Elaborates variable expressions" $ do
+        testElaborateExprInnerVar `shouldBe` Right (Var "$0")
+      it "Elaborates more variable expressions" $ do
+        testElaborateExprOuterVar `shouldBe` Right (Var "$0")
+      it "Does not elaborate undeclared variable expressions" $ do
+        testElaborateExprUndeclaredVar `shouldBe` Left "Variable x not found"
+      it "Elaborates unary  expressions" $ do
+        testElaborateExprNotOp `shouldBe` Right (NotOp (Var "$0"))
+      it "Elaborates binary operation expressions" $ do
+        testElaborateExprBinOp  `shouldBe`Right (BinOp AddS (Var "$0") (Var "$1"))
+    describe "Elaborates instructions" $ do
+      it "Elaborates declaration instructions" $ do
+        testElaborateInstrDecl `shouldBe` Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0, 1)
+      it "Elaborates declaration instructions with value initialization" $ do
+        testElaborateInstrDeclInit = `shouldBe` Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0, 1)
+      it "Elaborates assign instructions" $ do
+        testElaborateInstrAssign `shouldBe` Right (Assign "$0" (Val 5), [("x", "$0")], 0, 1)
+      it "Elaborates while instructions" $ do
+        testElaborateInstrWhile `shouldBe` Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0, 1)
+      it "Elaborates if else instructions" $ do
+        testElaborateInstrIfElse `shouldBe` Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0, 2)
+      it "Elaborates if instructions" $ do
+        testElaborateInstrIf `shouldBe` Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0, 1)
+      it "Elaborates print instructions" $ do
+        testElaborateInstrPrint `shouldBe` Right (Print (Var "x1"), [("x", "$0")], 0, 1)
+      it "Elaborates fork instructions" $ do
+        testElaborateInstrFork `shouldBe` Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1, 1)
+      it "Elaborates lock instructions" $ do
+        testElaborateInstrLock `shouldBe` Right (Lock "$0", [("x", "$0")], 0, 1)
+      it "Elaborates unlock instructions" $ do
+        testElaborateInstrUnlock `shouldBe` Right (Unlock "$0", [("x", "$0")], 0, 1)
+    describe "Elaborates programs" $ do
+      it "Elaborates empty programs" $ do
+        testElaborateProgEmpty `shouldBe` Right ([], 0)
+      it "Elaborates programs with one instruction" $ do
+        testElaborateProgSingleDecl `shouldBe` Right ([Decl Local TypeInt "$0" Nothing], 0, 1)
+      it "Elaborates programs with multiple instructions" $ do
+        testElaborateProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)),While (BVal True) [Decl Local TypeBool "$1" (Just (Val 5))]],0,2)
+    describe "Removes BVal from expressions" $ do
+      it "Removes BVal from value expressions" $ do
+        testRemoveBValFromExprVal `shouldBe` (Val 5)
+      it "Removes BVal from boolean value expressions" $ do
+        testRemoveBValFromExprBValTrue `shouldBe` (Val 1)
+      it "Removes BVal from boolean value expressions" $ do
+        testRemoveBValFromExprBValFalse `shouldBe` (Val 0)
+      it "Removes BVal from variable expressions" $ do
+        testRemoveBValFromExprVar `shouldBe` (Var "x")
+      it "Removes BVal from unary expressions" $ do
+        testRemoveBValFromExprNotOp `shouldBe` (NotOp (Val 1))
+      it "Removes BVal from binary operation expressions" $ do
+        testRemoveBValFromExprBinOp `shouldBe` (BinOp AndS (Val 1) (Val 0))
+    describe "Removes BVal from instructions" $ do
+      it "Removes BVal from declaration instructions" $ do
+        testRemoveBValFromInstrDecl `shouldBe` (Decl Local TypeInt "x" (Just (Val 1)))
+      it "Removes BVal from assign instructions" $ do
+        testRemoveBValFromInstrAssign `shouldBe` (Assign "x" (Val 0))
+      it "Removes BVal from while instructions" $ do
+        testRemoveBValFromInstrWhile `shouldBe` (While (Val 1) [Print (Val 1)])
+      it "Removes BVal from if else instructions" $ do
+        testRemoveBValFromInstrIfElse `shouldBe` (IfElse (Val 1) [Print (Val 1)] [Print (Val 1)])
+      it "Removes BVal from if instructions" $ do
+        testRemoveBValFromInstrIf `shouldBe`(If (Val 1) [Print (Val 1)])
+      it "Removes BVal from print instructions" $ do
+        testRemoveBValFromInstrPrint `shouldBe` (Print (Val 1))
+    describe "Removes BVal from programs" $ do
+      it "Removes BVal from empty programs" $ do
+        testRemoveBValFromProgramEmpty `shouldBe` []
+      it "Removes BVal from single instruction programs" $ do
+        testRemoveBValFromProgramSingleInstr `shouldBe`[Assign "x" (Val 1)]
+      it "Removes BVal from multiple instruction programs" $ do
+        testRemoveBValFromProgramMultipleInstrs `shouldBe` [Decl Local TypeInt "x" (Just (Val 1)), Assign "x" (Val 0)]
   describe "Language (running code)" $ do
     describe "legal code" $ do
       it "overshadows a variable and prints both of them" $ do
@@ -823,6 +860,126 @@ testCheckProgramError_9 = checkProg [] [Fork Nothing [Print (Var "a")],Decl Shar
 -- Expected: Left "Variable a not found in scope"
 
 -- #####################################################################################################################
--- #                                               Program Optimizations                                               #
+-- #                                                Program Elaboration                                                #
 -- #####################################################################################################################
 
+-- Test cases for lookupVarName
+testLookupVarNameFound :: Either String String
+testLookupVarNameFound = lookupVarName "x" [("x", "$0")]
+-- expected: Right TypeInt
+
+testLookupVarNameNotFound :: Either String String
+testLookupVarNameNotFound = lookupVarName "y" [("x", "$0")]
+-- expected: Left "Variable y not found"
+
+-- Test cases for elaborateExpr
+testElaborateExprVal :: Either String Expr
+testElaborateExprVal = elaborateExpr [] [] (Val 5)
+-- expected: Right (Val 5)
+
+testElaborateExprBValTrue :: Either String Expr
+testElaborateExprBValTrue = elaborateExpr [] [] (BVal True)
+-- expected: Right (BVaL True)
+
+testElaborateExprBValFalse :: Either String Expr
+testElaborateExprBValFalse = elaborateExpr [] [](BVal False)
+-- expected: Right (BVal False)
+
+testElaborateExprInnerVar :: Either String Expr
+testElaborateExprInnerVar = elaborateExpr [] [("x", "$0")] (Var "x")
+-- expected: Right (Var "$0")
+
+testElaborateExprOuterVar :: Either String Expr
+testElaborateExprOuterVar = elaborateExpr [("x", "$0")] [] (Var "x")
+-- expected: Right (Var "$0")
+
+testElaborateExprUndeclaredVar :: Either String Expr
+testElaborateExprUndeclaredVar = elaborateExpr [] [] (Var "x")
+-- expected: Left "Variable x not found"
+
+testElaborateExprNotOp :: Either String Expr
+testElaborateExprNotOp = elaborateExpr [] [("x", "$0")] (NotOp (Var "x"))
+-- expected: Right (NotOp (Var "$0"))
+
+testElaborateExprBinOp :: Either String Expr
+testElaborateExprBinOp = elaborateExpr [] [("x", "$0"), ("y", "$1")] (BinOp AddS (Var "x") (Var "y"))
+-- expected: Right (BinOp AddS (Var "$0") (Var "$1"))
+
+-- Test cases for elaborateInstr
+testElaborateInstrDecl :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrDecl = elaborateInstr (Decl Local TypeInt "x" Nothing) [] [] 0 0
+-- expected: Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0, 1)
+
+testElaborateInstrDeclInit :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrDeclInit = elaborateInstr (Decl Local TypeInt "x" (Just (Val 5))) [] [] 0 0
+-- expected: Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0, 1)
+
+testElaborateInstrAssign :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrAssign = elaborateInstr (Assign "x" (Val 5)) [] [("x", "$0")] 0 1
+-- expected: Right (Assign "$0" (Val 5), [("x", "$0")], 0, 1)
+
+testElaborateInstrWhile :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrWhile = elaborateInstr (While (BVal True) [Print (Var "x")]) [] [("x", "$0")] 0 1
+-- expected: Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0, 1)
+
+testElaborateInstrIfElse :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrIfElse = elaborateInstr (IfElse (BVal True) [Print (Var "x")] [Print (Var "y")]) [] [("x", "$0"), ("y", "$1")] 0 2
+-- expected: Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0, 2)
+
+testElaborateInstrIf :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrIf = elaborateInstr (If (BVal True) [Print (Var "x")]) [] [("x", "$0")] 0 1
+-- expected: Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0, 1)
+
+testElaborateInstrPrint :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrPrint = elaborateInstr (Print (Var "x")) [] [("x", "$0")] 0 1
+-- expected: Right (Print (Var "x1"), [("x", "$0")], 0, 1)
+
+testElaborateInstrFork :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrFork = elaborateInstr (Fork Nothing [Print (Var "x")]) [] [("x", "$0")] 0 1
+-- expected: Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1, 1)
+
+testElaborateInstrLock :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrLock = elaborateInstr (Lock "x") [] [("x", "$0")] 0 1
+-- expected: Right (Lock "$0", [("x", "$0")], 0, 1)
+
+testElaborateInstrUnlock :: Either String (Instr, VarEnv, Int, Int)
+testElaborateInstrUnlock = elaborateInstr (Unlock "x") [] [("x", "$0")] 0 1
+-- expected: Right (Unlock "$0", [("x", "$0")], 0, 1)
+
+-- Test cases for elaborateProg
+testElaborateProgEmpty ::Either String (Program, Int, Int)
+testElaborateProgEmpty = elaborateProg [] [] [] 0 0
+-- expected: Right ([], 0)
+
+testElaborateProgSingleDecl :: Either String (Program, Int, Int)
+testElaborateProgSingleDecl = elaborateProg [Decl Local TypeInt "x" Nothing] [] [] 0 0
+-- expected: Right ([Decl Local TypeInt "$0" Nothing], 0, 1)
+
+testElaborateProgMultipleInstrs :: Either String (Program, Int, Int)
+testElaborateProgMultipleInstrs = elaborateProg [Decl Local TypeInt "x" (Just (Val 5)), While (BVal True) [Decl Local TypeBool "x" (Just (Val 5))]] [] [] 0 0
+-- expected: Right ([Decl Local TypeInt "$0" (Just (Val 5)),While (BVal True) [Decl Local TypeBool "$1" (Just (Val 5))]],0,2)
+
+-- Test cases for removeBValFromExpr
+testRemoveBValFromExprVal :: Expr
+testRemoveBValFromExprVal = removeBValFromExpr (Val 5)
+-- Expected: (Val 5)
+
+testRemoveBValFromExprBValTrue :: Expr
+testRemoveBValFromExprBValTrue = removeBValFromExpr (BVal True)
+-- Expected: (Val 1)
+
+testRemoveBValFromExprBValFalse :: Expr
+testRemoveBValFromExprBValFalse = removeBValFromExpr (BVal False)
+-- Expected: (Val 0)
+
+testRemoveBValFromExprVar :: Expr
+testRemoveBValFromExprVar = removeBValFromExpr (Var "x")
+-- Expected: (Var "x")
+
+testRemoveBValFromExprNotOp :: Expr
+testRemoveBValFromExprNotOp = removeBValFromExpr (NotOp (BVal True))
+-- Expected: (NotOp (Val 1))
+
+testRemoveBValFromExprBinOp :: Expr
+testRemoveBValFromExprBinOp = removeBValFromExpr (BinOp AndS (BVal True) (BVal False))
+-- Expected (BinOp AndS (Val 1) (Val 0))
