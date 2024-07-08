@@ -236,12 +236,13 @@ elaborateProg (instr : rest) outerEnv innerEnv fc vc =
 --     Updated variable counter.
 elaborateInstr :: Instr -> VarEnv -> VarEnv -> Int -> Int -> Either String (Instr, VarEnv, Int, Int)
 elaborateInstr (Decl scope t name maybeExpr) outerEnv innerEnv fc vc =
-    case maybeExpr of
-        Just expr ->
+    case (lookupVarName name innerEnv, maybeExpr) of
+        (Right _, _) -> Left $ "Duplicate declaration of var: " ++ name                                                                                                 -- Error case: duplicate declaration of variable in nested scope
+        (_, Just expr) ->
             case (elaborateExpr outerEnv innerEnv expr) of
                 Right expr' -> Right (Decl scope t newName (Just expr'), innerEnv', fc, vc')
                 Left err -> Left err                                                                                    -- Propagate error from expression elaboration
-        Nothing -> Right (Decl scope t newName Nothing, innerEnv', fc, vc')
+        (_, Nothing) -> Right (Decl scope t newName Nothing, innerEnv', fc, vc')
     where
         newName = "$" ++ show (vc)
         innerEnv' = (name, newName) : innerEnv
