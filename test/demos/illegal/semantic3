@@ -1,0 +1,21 @@
+shared lock a
+shared lock b
+shared int barrier
+
+fork {
+ lock(a)
+ lock(b)
+ barrier = barrier + 1
+ unlock(b)
+ unlock(a)
+}
+
+fork {
+ lock(b)
+ lock(a)
+ barrier = barrier + 1
+ unlock(a)
+ unlock(b)
+}
+
+while (not(barrier == 2)) {}

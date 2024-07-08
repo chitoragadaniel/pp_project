@@ -11,7 +11,7 @@ languageDef =
            , Token.identStart       = letter
            , Token.identLetter      = alphaNum <|> char '_'
            , Token.reservedNames    = [ "if", "else", "while", "true", "false", "int", "bool", "shared", "fork", "lock", "unlock"]
-           , Token.reservedOpNames  = [ "=", "+", "-", "*", "^", "==", "<", "<=", "and", "or", "not"]
+           , Token.reservedOpNames  = [ "=", "+", "-", "*", "==", "<", "<=", "and", "or", "not"]
            }
 
 -- Create a lexer based on the language definition

@@ -1,6 +1,6 @@
 shared int john = 1000
 shared int alex = 1000
-shared bool barrier
+shared int barrier
 shared lock l
 
 fork {
@@ -8,6 +8,7 @@ fork {
   lock(l)
   john = john - transaction
   alex = alex + transaction
+  barrier = barrier + 1
   unlock(l)
 }
 fork {
@@ -15,6 +16,7 @@ fork {
   lock(l)
   john = john - transaction
   alex = alex + transaction
+  barrier = barrier + 1
   unlock(l)
 }
 fork {
@@ -22,18 +24,19 @@ fork {
   lock(l)
   john = john - transaction
   alex = alex + transaction
+  barrier = barrier + 1
   unlock(l)
 }
 fork {
-  int transaction = -600
+  int transaction = -700
   lock(l)
   john = john - transaction
   alex = alex + transaction
-  barrier = true // code throws an error here
+  barrier = barrier + 1
   unlock(l)
 }
 
-while (not(barrier)) {}
+while (not(barrier == 4)) {}
 
 print(john)
 print(alex)
