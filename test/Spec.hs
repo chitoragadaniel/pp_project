@@ -98,6 +98,9 @@ main = hspec $ do
             runFile "./test/demos/illegal/semantic1" `shouldThrow` anyException
           it "local memory overflow" $ do
             runFile "./test/demos/illegal/semantic2" `shouldThrow` anyException
+          it "runs 2 threads that aquire 2 locks in a different order, resulting in a deadlock" $ do
+            stdout <- timeout 1 $ capture_ $ runFile "./test/demos/illegal/semantic3"
+            stdout `shouldBe` Nothing
 
   describe "Unit tests" $ do
     describe "Parsing" $ do
