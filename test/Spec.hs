@@ -66,11 +66,11 @@ main = hspec $ do
       it "Parses a program with comments" $ do
         testParseWithComment `shouldBe` Right [Decl Local TypeInt "x" (Just (Val 5)), Decl Local TypeInt "y" (Just (Val 6))]
       it "Does not parse a program with incomplete instructions" $ do
-        testParseErrorIncompleteInstr `should` Left _
+        testParseErrorIncompleteInstr `shouldThrow` anyException
       it "Does not parse a program with incomplete expressions" $ do
-        testParseErrorIncompleteExpr `shouldBe` Left _
+        testParseErrorIncompleteExpr `shouldThrow` anyException
       it "Does not parse a program with invalid input" $ do
-        testParseErrorInvalidInput `shouldBe` Left _
+        testParseErrorInvalidInput `shouldThrow` anyException
   describe "Type Checking" $ do
     describe "Get types for variables" $ do
       it "Gets types for declared variable" $ do
@@ -672,16 +672,16 @@ testParseWithComment = parse parseProgram  "" "int x = 5 // this is a comment\ni
 
 -- Test cases for error scenarios
 testParseErrorIncompleteInstr :: Either ParseError Program
-testParseErrorIncompleteInstr = parse parseProgram "" "while (true) { int x = }"
--- expected: Left
+testParseErrorIncompleteInstr = runParseProgram "while (true) { int x = }"
+-- expected: ParseError
 
 testParseErrorIncompleteExpr :: Either ParseError Program
-testParseErrorIncompleteExpr = parse parseProgram "" "while (true) { int x = 5 + }"
--- expected: Left
+testParseErrorIncompleteExpr = runParseProgram "while (true) { int x = 5 + }"
+-- expected: ParseError
 
 testParseErrorInvalidInput :: Either ParseError Program
-testParseErrorInvalidInput = parse parseProgram "" "while (true) { int x = 5 + 7} invalid input"
--- expected: Left
+testParseErrorInvalidInput = runParseProgram "while (true) { int x = 5 + 7} invalid input"
+-- expected: ParseError
 
 -- #####################################################################################################################
 -- #                                                  Type Checking                                                    #
