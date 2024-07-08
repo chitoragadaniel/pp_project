@@ -1,7 +1,7 @@
 module Main where
 import CodeGen
 import Sprockell (run)
-import Elaborator (optimizeProgram, checkProgram)
+import Elaborator (elaborateProgram, checkProgram)
 import Parser (runParseProgram)
 import Data.List.Split
 
