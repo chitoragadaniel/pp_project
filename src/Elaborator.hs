@@ -156,7 +156,7 @@ getNewVarName env = "$" ++ show (length env)
 -- Optimizes a Program or throws an error
 optimizeProgram :: Program -> Program
 optimizeProgram prog =
-    case (optimizeProg prog [] [] 0 0) of
+    case (optimizeProg prog [] [] 1 0) of
         Right (prog', _, _) -> prog'
         Left err -> error err
 
