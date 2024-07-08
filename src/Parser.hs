@@ -31,6 +31,9 @@ reserved = Token.reserved lexer
 reservedOp :: String -> Parser ()
 reservedOp = Token.reservedOp lexer
 
+symbol :: String -> Parser String
+symbol = Token.symbol lexer
+
 whiteSpace :: Parser ()
 whiteSpace = Token.whiteSpace lexer
 
@@ -75,7 +78,7 @@ parseInstr = try (Decl <$> parseScope
                        <*> parseType
                        <*> identifier
                        <*> (optionMaybe (reserved "=" *> parseExpr)))
-           <|> try (Assign <$> identifier <*> (reserved "=" *> parseExpr))
+           <|> try (Assign <$> identifier <*> (symbol "=" *> parseExpr))
            <|> try (While <$> (reserved "while" *> (parens parseExpr))
                           <*> parseBlock)
            <|> try (IfElse <$> (reserved "if" *> (parens parseExpr))
