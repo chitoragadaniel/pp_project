@@ -4,12 +4,12 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           my-lang
+name:           stone
 version:        0.1.0.0
-description:    Implementation of MyLang.
-author:         My Name
-maintainer:     my@address.here
-copyright:      2022 Author name here
+description:    Implementation of Stone, an unnecessary language.
+author:         Daniel Chitoraga, Stef Waalders
+maintainer:     d.chitoraga@student.utwente.nl, s.waalders@student.utwente.nl
+copyright:      2024 Daniel Chitoraga, Stef Waalders
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
@@ -19,54 +19,52 @@ extra-source-files:
 library
   exposed-modules:
       CodeGen
-      Helper
-      MyCodeGen
-      MyParser
+      Elaborator
       Parser
   other-modules:
-      Paths_my_lang
+      Paths_stone
   hs-source-dirs:
       src
   build-depends:
       QuickCheck ==2.14.*
     , base >=4.7 && <5
-    , containers
     , hspec ==2.8.*
     , parsec ==3.1.*
+    , silently
     , sprockell >=2022.0
   default-language: Haskell2010
 
 executable my-lang-exe
   main-is: Main.hs
   other-modules:
-      Paths_my_lang
+      Paths_stone
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck ==2.14.*
     , base >=4.7 && <5
-    , containers
     , hspec ==2.8.*
-    , my-lang
     , parsec ==3.1.*
+    , silently
     , sprockell >=2022.0
+    , stone
   default-language: Haskell2010
 
 test-suite my-lang-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_my_lang
+      Paths_stone
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck ==2.14.*
     , base >=4.7 && <5
-    , containers
     , hspec ==2.8.*
-    , my-lang
     , parsec ==3.1.*
+    , silently
     , sprockell >=2022.0
+    , stone
   default-language: Haskell2010

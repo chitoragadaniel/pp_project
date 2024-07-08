@@ -15,10 +15,15 @@ main = hspec $ do
       describe "mandatory test programs" $ do
         it "runs 4 transactions, one for each thread, and prints the result of those transactions" $ do
           stdout <- capture_ $ runFile "./test/demos/mandatory/banking-system"
-          stdout `shouldBe` "Sprockell 0 says 1000\nSprockell 0 says 1000\n"
+          stdout `shouldBe` "Sprockell 0 says 1100\nSprockell 0 says 900\n"
         it "runs the Peterson's algorithm; in the critical section a variable is incremented" $ do
           stdout <- capture_ $ runFile "./test/demos/mandatory/peterson"
           stdout `shouldBe` "Sprockell 0 says 25\n"
+        it "" $ do
+          stdout <- capture_ $ runCode "shared lock a = 2\n print(a)"
+          stdout `shouldBe` "Sprockell 0 says 2\n"
+
+
       describe "legal examples" $ do
         it "overshadows a variable and prints both of them" $ do
           stdout <- capture_ $ runFile "./test/demos/legal/p0"
@@ -53,6 +58,8 @@ main = hspec $ do
         it "prints the result of the expression: (1+2)*10" $ do
           stdout <- capture_ $ runCode "print((1+2)*10)"
           stdout `shouldBe` "Sprockell 0 says 30\n"
+
+
       describe "illegal examples" $ do
         describe "syntax errors" $ do
           it "runs an unfinished assignment" $ do
@@ -67,6 +74,7 @@ main = hspec $ do
             runCode "x = 1;" `shouldThrow` anyException
           it "uses an invalid variable name" $ do
             runCode "int $a = 8" `shouldThrow` anyException
+
         describe "contextual errors" $ do
           it "shows that a thread can't access local variables of other threads" $ do
             runFile "./test/demos/illegal/contex0" `shouldThrow` anyException
@@ -90,6 +98,7 @@ main = hspec $ do
             runCode "int a = true" `shouldThrow` anyException
           it "makes a binary operation with different types of variables" $ do
             runCode "print(10==false)" `shouldThrow` anyException
+
         describe "semantic errors" $ do
           it "runs an infinite while loop" $ do
                     stdout <- timeout 1 $ runFile "./test/demos/illegal/semantic0"
@@ -102,6 +111,7 @@ main = hspec $ do
             stdout <- timeout 1 $ capture_ $ runFile "./test/demos/illegal/semantic3"
             stdout `shouldBe` Nothing
 
+
   describe "Unit tests" $ do
     describe "Parsing" $ do
       describe "Parses Types" $ do
@@ -111,11 +121,13 @@ main = hspec $ do
           testParseTypeInt `shouldBe` Right TypeInt
         it "Parses type Lock" $ do
           testParseTypeLock `shouldBe` Right TypeLock
+
       describe "Parses Scopes" $ do
         it "Parses local scope" $ do
           testParseScopeLocal `shouldBe` Right Local
         it "Parses shared scope" $ do
           testParseScopeShared `shouldBe` Right Shared
+
       describe "Parses Expressions" $ do
         it "Parses integer value" $ do
           testParseExprInt `shouldBe` Right (Val 5)
@@ -131,6 +143,7 @@ main = hspec $ do
           testParseExprLogicalAnd `shouldBe` Right (BinOp AndS (Var "x") (Var "y"))
         it "Parses comparison expressions" $ do
           testParseExprComparison `shouldBe` Right (BinOp EQS (Var "x") (Var "y"))
+
       describe "Parses Instuctions" $ do
         it "Parses declaration instructions" $ do
           testParseInstrDecl `shouldBe` Right (Decl Local TypeInt "x" Nothing)
@@ -152,6 +165,7 @@ main = hspec $ do
           testParseInstrUnlock `shouldBe` Right (Unlock "l")
         it "Parses fork instructions" $ do
           testParseInstrFork `shouldBe` Right (Fork Nothing [Decl Local TypeInt "x" (Just (Val 5))])
+
       describe "Parses Programs" $ do
         it "Parses a program" $ do
           testParseProgram `shouldBe` Right [Decl Local TypeInt "x" (Just (Val 5)), While (BVal True) [Decl Local TypeInt "y" (Just (Val 6))]]
@@ -170,6 +184,7 @@ main = hspec $ do
           testLookupVarTypeFound `shouldBe` Right TypeInt
         it "Does not get types for undeclared variables" $ do
           testLookupVarTypeNotFound `shouldBe` Left "Variable y not found in scope"
+
       describe "Infers types of expressions" $ do
         it "Infers type of integers" $ do
           testInferExprTypeVal `shouldBe` Right TypeInt
@@ -185,6 +200,7 @@ main = hspec $ do
           testInferExprTypeBinOpAdd `shouldBe` Right TypeInt
         it "Does not infer types of mismatched binary operations" $ do
           testInferExprTypeBinOpError `shouldBe` Left "Type error in binary operation AddS"
+
       describe "Type checks instructions" $ do
         it "Type checks declaration instructions" $ do
           testCheckInstrDecl `shouldBe` Right [("x", (Local, TypeInt))]
@@ -232,6 +248,7 @@ main = hspec $ do
           testCheckInstrFork `shouldBe` Right []
         it "Type checks fork instructions" $ do
           testCheckInstrForkError `shouldBe` Left "Cannot enter fork from outside global scope"
+
       describe "Type checks programs" $ do
         it "Type checks valid programs" $ do
           testCheckProgram `shouldBe` Right [("x", (Local, TypeInt))]
@@ -260,6 +277,7 @@ main = hspec $ do
           testLookupVarNameFound `shouldBe` Right "$0"
         it "Does not get updated variable name when variable is undeclared" $ do
           testLookupVarNameNotFound `shouldBe` Left "Variable y not found."
+
       describe "Elaborates expressions" $ do
         it "Elaborates value expressions" $ do
           testElaborateExprVal `shouldBe` Right (Val 5)
@@ -277,6 +295,7 @@ main = hspec $ do
           testElaborateExprNotOp `shouldBe` Right (NotOp (Var "$0"))
         it "Elaborates binary operation expressions" $ do
           testElaborateExprBinOp  `shouldBe`Right (BinOp AddS (Var "$0") (Var "$1"))
+
       describe "Elaborates instructions" $ do
         it "Elaborates declaration instructions" $ do
           testElaborateInstrDecl `shouldBe` Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0, 1)
@@ -298,6 +317,7 @@ main = hspec $ do
           testElaborateInstrLock `shouldBe` Right (Lock "$0", [("x", "$0")], 0, 1)
         it "Elaborates unlock instructions" $ do
           testElaborateInstrUnlock `shouldBe` Right (Unlock "$0", [("x", "$0")], 0, 1)
+
       describe "Elaborates programs" $ do
         it "Elaborates empty programs" $ do
           testElaborateProgEmpty `shouldBe` Right ([], 0, 0)
@@ -305,6 +325,7 @@ main = hspec $ do
           testElaborateProgSingleDecl `shouldBe` Right ([Decl Local TypeInt "$0" Nothing], 0, 1)
         it "Elaborates programs with multiple instructions" $ do
           testElaborateProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)),While (BVal True) [Decl Local TypeBool "$1" (Just (Val 5))]],0,2)
+
       describe "Removes BVal from expressions" $ do
         it "Removes BVal from value expressions" $ do
           testRemoveBValFromExprVal `shouldBe` Val 5
@@ -318,6 +339,7 @@ main = hspec $ do
           testRemoveBValFromExprNotOp `shouldBe` NotOp (Val 1)
         it "Removes BVal from binary operation expressions" $ do
           testRemoveBValFromExprBinOp `shouldBe` BinOp AndS (Val 1) (Val 0)
+
       describe "Removes BVal from instructions" $ do
         it "Removes BVal from declaration instructions" $ do
           testRemoveBValFromInstrDecl `shouldBe` Decl Local TypeBool "x" (Just (Val 1))
@@ -331,6 +353,7 @@ main = hspec $ do
           testRemoveBValFromInstrIf `shouldBe`If (Val 1) [Print (Val 1)]
         it "Removes BVal from print instructions" $ do
           testRemoveBValFromInstrPrint `shouldBe` Print (Val 1)
+
       describe "Removes BVal from programs" $ do
         it "Removes BVal from empty programs" $ do
           testRemoveBValFromProgramEmpty `shouldBe` []
@@ -355,6 +378,7 @@ main = hspec $ do
           testGetAddrShared `shouldBe` (Shared,0)
         it "tries to get the address of a variable that's not in any dictionary" $ do
           evaluate testGetAddrError `shouldThrow` anyException
+
       describe "generating expressions" $ do
         it "generates the code for a value" $ do
           testExprGenVal `shouldBe` [Load (ImmValue 10) 2]
@@ -366,6 +390,7 @@ main = hspec $ do
           testExprGenNotOp `shouldBe` [Load (ImmValue 1) 2,Compute Equal 2 0 2]
         it "generates the code for a binary operation: i+10*11" $ do
           testExprGenBinOp `shouldBe` [Load (DirAddr 0) 2,Load (ImmValue 10) 3,Load (ImmValue 11) 4,Compute Mul 3 4 3,Compute Add 2 3 2]
+
       describe "running generated instructions" $ do -- add another print with an complicated expression
         it "prints the value 100" $ do
           stdout <- capture_ (run (codeGen [Print $ Val 100]))
@@ -397,6 +422,7 @@ main = hspec $ do
         it "spawns 2 threads that increment a by 1 and b by 2 using 2 locks for synchronization" $ do
           stdout <- capture_ (run (codeGen multipleLocksProgram))
           stdout `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 4\n"
+
       describe "others" $ do
         it "gets the IR's of all the spawned threads" $ do
           testForkAST `shouldBe` [[Decl Local TypeInt "f1" Nothing,Fork (Just 2) [Decl Local TypeInt "f2" Nothing]],[Decl Local TypeInt "f2" Nothing],[Decl Local TypeInt "f3" Nothing]]

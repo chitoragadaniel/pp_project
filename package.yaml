@@ -1,14 +1,14 @@
-name:                my-lang
+name:                stone
 version:             0.1.0.0
 license:             MIT
-author:              "My Name"
-maintainer:          "my@address.here"
-copyright:           "2022 Author name here"
+author:              "Daniel Chitoraga, Stef Waalders"
+maintainer:          "d.chitoraga@student.utwente.nl, s.waalders@student.utwente.nl"
+copyright:           "2024 Daniel Chitoraga, Stef Waalders"
 
 extra-source-files:
 - README.md
 
-description:         Implementation of MyLang.
+description:         Implementation of Stone, an unnecessary language.
 
 dependencies:
 - base >= 4.7 && < 5
@@ -17,7 +17,6 @@ dependencies:
 - hspec >= 2.8 && < 2.9
 - QuickCheck >= 2.14 && < 2.15
 - silently
-- split
 
 library:
   source-dirs: src
@@ -31,7 +30,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - my-lang
+    - stone
 
 tests:
   my-lang-test:
@@ -42,4 +41,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - my-lang
+    - stone
