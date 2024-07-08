@@ -298,10 +298,11 @@ removeBValFromInstr (Decl scope t name maybeExpr) =
         Nothing -> Decl scope t name Nothing
         Just expr -> Decl scope t name (Just (removeBValFromExpr expr))
 removeBValFromInstr (Assign name expr) = Assign name (removeBValFromExpr expr)
-removeBValFromInstr (While expr prog) = While (removeBValFromExpr expr) prog
-removeBValFromInstr (IfElse expr thenProg elseProg) = IfElse (removeBValFromExpr expr) thenProg elseProg
-removeBValFromInstr (If expr prog) = If (removeBValFromExpr expr) prog
+removeBValFromInstr (While expr prog) = While (removeBValFromExpr expr) (removeBValFromProgram prog)
+removeBValFromInstr (IfElse expr thenProg elseProg) = IfElse (removeBValFromExpr expr) (removeBValFromProgram thenProg) (removeBValFromProgram elseProg)
+removeBValFromInstr (If expr prog) = If (removeBValFromExpr expr) (removeBValFromProgram prog)
 removeBValFromInstr (Print expr) = Print (removeBValFromExpr expr)
+removeBValFromInstr (Fork maybeInt prog) = Fork maybeInt (removeBValFromProgram prog)
 removeBValFromInstr instr = instr
 
 removeBValFromExpr :: Expr -> Expr
