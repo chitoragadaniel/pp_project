@@ -3,12 +3,13 @@ shared int sum
 int i = 1
 sum = sum + i
 fork {
-  int i = 1
+  int i = 2
   sum = sum + i
   fork {
-    int i = 1
+    int i = 3
     sum = sum + i
   }
 }
-while (not(sum == 3)) {}
+while (not(sum == 6)) {}
+print(sum)
 print(i)

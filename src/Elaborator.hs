@@ -21,7 +21,7 @@ type TypeEnv = [(String, VarType)]
 lookupVarType :: String -> TypeEnv -> Either String Type
 lookupVarType var env = case lookup var env of
     Just (s, t)  -> Right t
-    Nothing -> Left $ "Variable " ++ var ++ " not found in scope."
+    Nothing -> Left $ "Variable " ++ var ++ " not found in scope"
 
 -- Function to infer the type of an expression
 inferExprType :: TypeEnv -> Expr -> Either String Type

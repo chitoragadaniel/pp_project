@@ -13,7 +13,7 @@ fork {
 }
 fork {
   lock(lb)
-  b = b+2
+  b=b+2
   unlock(lb)
   lock(la)
   a = a+1
