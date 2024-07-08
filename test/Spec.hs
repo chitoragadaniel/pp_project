@@ -4,9 +4,10 @@ import CodeGen
 import Sprockell
 import Test.Hspec
 import Test.QuickCheck
---import Test.Hspec.Core.Clock
+import System.Timeout
 import System.IO.Silently
 import Control.Exception
+import Text.ParserCombinators.Parsec
 
 main :: IO ()
 main = hspec $ do
@@ -207,13 +208,37 @@ main = hspec $ do
 --      it "" $ do
 --        testOptimizeProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)
   describe "Language (running code)" $ do
-    it "shows that a thread can't access local variables of other threads" $ do
-      runFile "./test/demos/p0" `shouldThrow` anyException
-    it "defines a local lock" $ do
-      runFile "./test/demos/p1" `shouldThrow` anyException
-    it "overshadows a variable" $ do
-      stdout <- capture_ $ runFile "./test/demos/p2"
-      stdout `shouldBe` "Sprockell 0 says 2/nSprockell 0 says 1/n"
+--    describe "legal code" $ do
+--      it "overshadows a variable" $ do
+--        stdout <- capture_ $ runFile "./test/demos/p2"
+--        stdout `shouldBe` "Sprockell 0 says 2/nSprockell 0 says 1/n"
+--      it "overshadows a variable" $ do
+--        stdout <- capture_ $ runFile "./test/demos/p6"
+--        stdout `shouldBe` "Sprockell 0 says 2/nSprockell 0 says 1/n"
+    describe "illegal code" $ do
+      it "shows that a thread can't access local variables of other threads" $ do
+        runFile "./test/demos/illegal/p0" `shouldThrow` anyException
+      it "defines a local lock" $ do
+        runFile "./test/demos/illegal/p1" `shouldThrow` anyException
+      it "declares a shared variable in a fork" $ do
+        runFile "./test/demos/illegal/p2" `shouldThrow` anyException
+      it "declares a shared variable inside an if" $ do
+        runFile "./test/demos/illegal/p3" `shouldThrow` anyException
+      it "forks inside an if" $ do
+        runFile "./test/demos/illegal/p4" `shouldThrow` anyException
+      it "prints a variable out of scope" $ do
+        runFile "./test/demos/illegal/p5" `shouldThrow` anyException
+      it "prints a uninitialized variable" $ do
+        runFile "./test/demos/illegal/p6" `shouldThrow` anyException
+      it "prints a uninitialized variable inside a fork" $ do
+        runFile "./test/demos/illegal/p7" `shouldThrow` anyException
+      it "runs an infinite while loop" $ do
+        stdout <- timeout 1 $ runFile "./test/demos/illegal/p8"
+        stdout `shouldBe` Nothing
+      it "shared memory overflow" $ do
+        runFile "./test/demos/illegal/p9" `shouldThrow` anyException
+      it "local memory overflow" $ do
+        runFile "./test/demos/illegal/p10" `shouldThrow` anyException
   describe "Code generation" $ do
     describe "dictionaries" $ do
       it "gets the local dictionary of a thread" $ do
