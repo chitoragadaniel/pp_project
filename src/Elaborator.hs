@@ -301,6 +301,7 @@ removeBValFromInstr (Assign name expr) = Assign name (removeBValFromExpr expr)
 removeBValFromInstr (While expr prog) = While (removeBValFromExpr expr) prog
 removeBValFromInstr (IfElse expr thenProg elseProg) = IfElse (removeBValFromExpr expr) thenProg elseProg
 removeBValFromInstr (If expr prog) = If (removeBValFromExpr expr) prog
+removeBValFromInstr instr = instr
 
 removeBValFromExpr :: Expr -> Expr
 removeBValFromExpr (Val n) = Val n
