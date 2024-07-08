@@ -325,6 +325,8 @@ main = hspec $ do
           testElaborateProgSingleDecl `shouldBe` Right ([Decl Local TypeInt "$0" Nothing], 0, 1)
         it "Elaborates programs with multiple instructions" $ do
           testElaborateProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)),While (BVal True) [Decl Local TypeBool "$1" (Just (Val 5))]],0,2)
+        it "Elaborates programs with duplicate variable declaration" $ do
+          testElaborateProgDuplicateDeclaration `shouldBe` Left "Duplicate declaration of var: x"
 
       describe "Removes BVal from expressions" $ do
         it "Removes BVal from value expressions" $ do
@@ -827,6 +829,10 @@ testElaborateProgSingleDecl = elaborateProg [Decl Local TypeInt "x" Nothing] [] 
 testElaborateProgMultipleInstrs :: Either String (Program, Int, Int)
 testElaborateProgMultipleInstrs = elaborateProg [Decl Local TypeInt "x" (Just (Val 5)), While (BVal True) [Decl Local TypeBool "x" (Just (Val 5))]] [] [] 0 0
 -- expected: Right ([Decl Local TypeInt "$0" (Just (Val 5)),While (BVal True) [Decl Local TypeBool "$1" (Just (Val 5))]],0,2)
+
+testElaborateProgDuplicateDeclaration :: Either String (Program, Int, Int)
+testElaborateProgDuplicateDeclaration = elaborateProg [Decl Local TypeInt "x" (Just (Val 5)), Decl Local TypeBool "x" (Just (BVal True))] [] [] 0 0
+-- expected: Left "Duplicate declaration of var: x"
 
 -- Test cases for removeBValFromExpr
 testRemoveBValFromExprVal :: Expr
