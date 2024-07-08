@@ -2,7 +2,7 @@ name:                stone
 version:             0.1.0.0
 license:             MIT
 author:              "Daniel Chitoraga, Stef Waalders"
-maintainer:          "d.chitoraga@student.utwente.nl, s.waalders@student.utwente.nl"
+maintainer:          "d.chitoraga@student.utwente.nl, s.j.m.waalders@student.utwente.nl"
 copyright:           "2024 Daniel Chitoraga, Stef Waalders"
 
 extra-source-files:
