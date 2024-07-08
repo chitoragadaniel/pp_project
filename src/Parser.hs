@@ -58,7 +58,7 @@ data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Loc
 data Expr     = BinOp Op Expr Expr                    -- Binary operation
               | NotOp Expr                            -- Not operation
               | Val Int                               -- A integer
-              | BVal Bool                             -- Boolean value
+              | BVal Bool                             -- Boolean value; (Needed for type checking)
               | Var String                            -- Using a variable
               deriving (Show, Eq)
 
