@@ -153,90 +153,163 @@ lookupVarName var env = case lookup var env of
 getNewVarName :: VarEnv -> String
 getNewVarName env = "$" ++ show (length env)
 
+-- Optimizes a Program or throws an error
 optimizeProgram :: Program -> Program
 optimizeProgram prog =
-    case (optimizeProg prog [] 0) of
-        Right (prog', _) -> prog'
+    case (optimizeProg prog [] [] 0 0) of
+        Right (prog', _, _) -> prog'
         Left err -> error err
 
 -- Optimizes a list of instructions
-optimizeProg :: Program -> VarEnv -> Int -> Either String (Program, Int)
-optimizeProg [] env fc = Right ([], fc)
-optimizeProg (instr : rest) env fc =
-    case (optimizeInstr instr env fc) of
-        Right (instr', env', fc') ->
-            case (optimizeProg rest env' fc') of
-                Right (rest', fc'') -> Right (instr' : rest', fc'')
+-- Inputs:
+  -- instructions to be optimized
+  -- List with variables names and their new names from the outer scope:  - outerEnv
+  -- List with variables names and their new names from the inner scope:  - innerEnv
+  -- Counter for forks:                                                   - fc
+  -- Counter for variables:                                               - vc
+-- Outputs:
+  -- Either Error message or:
+    -- Optimized instructions
+    -- Updated fork counter
+    -- Updated variable counter
+
+optimizeProg :: Program -> VarEnv -> VarEnv-> Int -> Int -> Either String (Program, Int, Int)
+optimizeProg [] outerEnv innerEnv fc vc = Right ([], fc, vc)
+optimizeProg (instr : rest) outerEnv innerEnv fc vc =
+    case (optimizeInstr instr outerEnv innerEnv fc vc) of
+        Right (instr', innerEnv', fc', vc') ->
+            case (optimizeProg rest outerEnv innerEnv' fc' vc') of
+                Right (rest', fc'', vc'') -> Right (instr' : rest', fc'', vc'')
                 Left err -> Left err
         Left err -> Left err
 
 -- Optimizes a single instruction
-optimizeInstr :: Instr -> VarEnv -> Int -> Either String (Instr, VarEnv, Int)
-optimizeInstr (Decl scope t name maybeExpr) env fc =
+-- Inputs:
+  -- instructions to be optimized
+  -- List with variables names and their new names from the outer scope:  - outerEnv
+  -- List with variables names and their new names from the inner scope:  - innerEnv
+  -- Counter for forks:                                                   - fc
+  -- Counter for variables:                                               - vc
+-- Outputs:
+  -- Either Error message or:
+    -- Optimized instructions
+    -- Updated list with variables names and their new names from the inner scope
+    -- Updated fork counter
+    -- Updated variable counter
+optimizeInstr :: Instr -> VarEnv -> VarEnv-> Int -> Int -> Either String (Instr, VarEnv, Int, Int)
+optimizeInstr (Decl scope t name maybeExpr) outerEnv innerEnv fc vc =
     case maybeExpr of
         Just expr ->
-            case (optimizeExpr env expr) of
-                Right expr' -> Right (Decl scope t newName (Just expr'), env', fc)
+            case (optimizeExpr outerEnv innerEnv expr) of
+                Right expr' -> Right (Decl scope t newName (Just expr'), innerEnv', fc, vc')
                 Left err -> Left err
-        Nothing -> Right (Decl scope t newName Nothing, env', fc)
+        Nothing -> Right (Decl scope t ("$" ++ show (vc)) Nothing, innerEnv', fc, vc')
     where
-        newName = (getNewVarName env)
-        env' = (name, newName) : env
-optimizeInstr (Assign name expr) env fc =
-    case (lookupVarName name env, optimizeExpr env expr) of
-        (Right newName, Right expr') -> Right (Assign newName expr', env, fc)
+        newName = "$" ++ show (vc)
+        innerEnv' = (name, newName) : innerEnv
+        vc' = vc + 1
+optimizeInstr (Assign name expr) outerEnv innerEnv fc vc =
+    case (lookupVarName name innerEnv) of
+        Left _ ->
+            case (lookupVarName name outerEnv, optimizeExpr outerEnv innerEnv expr) of
+                (Right newName, Right expr') -> Right (Assign newName expr', innerEnv, fc, vc)
+                (Left err, _) -> Left err
+                (_, Left err) -> Left err
+        Right newName ->
+            case (optimizeExpr outerEnv innerEnv expr) of
+                Right expr' -> Right (Assign newName expr', innerEnv, fc, vc)
+                Left err -> Left err
+optimizeInstr (While expr prog) outerEnv innerEnv fc vc =
+    case (optimizeExpr outerEnv innerEnv expr, optimizeProg prog (outerEnv ++ innerEnv) [] fc vc) of
+        (Right expr', Right (prog', fc', vc')) -> Right (While expr' prog', innerEnv, fc', vc')
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-optimizeInstr (While expr prog) env fc =
-    case (optimizeExpr env expr, optimizeProg prog env fc) of
-        (Right expr', Right (prog', fc')) -> Right (While expr' prog', env, fc')
-        (Left err, _) -> Left err
-        (_, Left err) -> Left err
-optimizeInstr (IfElse expr thenProg elseProg) env fc =
-    case (optimizeExpr env expr, optimizeProg thenProg env fc) of
-        (Right expr', Right (elseProg', fc')) ->
-            case (optimizeProg thenProg env fc') of
-                Right (thenProg', fc'') -> Right (IfElse expr' thenProg' elseProg', env, fc'')
+optimizeInstr (IfElse expr thenProg elseProg) outerEnv innerEnv fc vc =
+    case (optimizeExpr outerEnv innerEnv expr, optimizeProg thenProg (outerEnv ++ innerEnv) [] fc vc) of
+        (Right expr', Right (elseProg', fc', vc')) ->
+            case (optimizeProg thenProg (outerEnv ++ innerEnv) [] fc' vc') of
+                Right (thenProg', fc'', vc'') -> Right (IfElse expr' thenProg' elseProg', innerEnv, fc'', vc'')
                 Left err -> Left err
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-optimizeInstr (If expr prog) env fc =
-    case (optimizeExpr env expr, optimizeProg prog env fc) of
-        (Right expr', Right (prog', fc')) -> Right (If expr' prog', env, fc')
+optimizeInstr (If expr prog) outerEnv innerEnv fc vc =
+    case (optimizeExpr outerEnv innerEnv expr, optimizeProg prog (outerEnv ++ innerEnv) [] fc vc) of
+        (Right expr', Right (prog', fc', vc')) -> Right (If expr' prog', innerEnv, fc', vc')
         (Left err, _) -> Left err
         (_, Left err) -> Left err
-optimizeInstr (Print expr) env fc =
-    case (optimizeExpr env expr) of
-        Right expr' -> Right (Print expr', env, fc)
+
+optimizeInstr (Print expr) outerEnv innerEnv fc vc =
+    case (optimizeExpr outerEnv innerEnv expr) of
+        Right expr' -> Right (Print expr', innerEnv, fc, vc)
         Left err -> Left err
-optimizeInstr (Fork _ prog) env fc =
-    case (optimizeProg prog env (fc + 1)) of
-        Right (prog', fc') -> Right (Fork (Just fc) prog', env, fc')
+optimizeInstr (Fork _ prog) outerEnv innerEnv fc vc =
+    case (optimizeProg prog (outerEnv ++ innerEnv) [] (fc + 1) vc) of
+        Right (prog', fc', vc') -> Right (Fork (Just fc) prog', innerEnv, fc', vc')
         Left err -> Left err
-optimizeInstr (Lock name) env fc =
-    case lookupVarName name env of
-        Right newName -> Right (Lock newName, env, fc)
-        Left err -> Left err
-optimizeInstr (Unlock name) env fc =
-    case lookupVarName name env of
-        Right newName -> Right (Unlock newName, env, fc)
-        Left err -> Left err
+optimizeInstr (Lock name) outerEnv innerEnv fc vc =
+    case lookupVarName name innerEnv of
+        Left _ ->
+            case lookupVarName name outerEnv of
+                Right newName -> Right (Lock newName, innerEnv, fc, vc)
+                Left err -> Left err
+        Right newName -> Right (Lock newName, innerEnv, fc, vc)
+optimizeInstr (Unlock name) outerEnv innerEnv fc vc =
+    case lookupVarName name innerEnv of
+        Left _ ->
+            case lookupVarName name outerEnv of
+                Right newName -> Right (Unlock newName, innerEnv, fc, vc)
+                Left err -> Left err
+        Right newName -> Right (Unlock newName, innerEnv, fc, vc)
 
 -- Optimizes an expression
-optimizeExpr :: VarEnv -> Expr -> Either String Expr
-optimizeExpr env (Val n) = Right (Val n)
-optimizeExpr env (BVal True) = Right (Val 1)
-optimizeExpr env (BVal False) = Right (Val 0)
-optimizeExpr env (Var name) =
-  case lookupVarName name env of
+-- Inputs:
+  -- List with variables names and their new names from the outer scope:  - outerEnv
+  -- List with variables names and their new names from the inner scope:  - innerEnv
+  -- Expression to be optimized
+-- Outputs:
+  -- Either optimized expression or error message
+optimizeExpr :: VarEnv -> VarEnv -> Expr -> Either String Expr
+optimizeExpr _ _ (Val n) = Right (Val n)
+optimizeExpr _ _ (BVal b) = Right (BVal b)
+optimizeExpr outerEnv innerEnv (Var name) =
+  case lookupVarName name innerEnv of
+    Left _ ->
+      case lookupVarName name outerEnv of
+          Right newName -> Right (Var newName)
+          Left err -> Left err
     Right newName -> Right (Var newName)
-    Left err -> Left err
-optimizeExpr env (NotOp expr) =
-  case (optimizeExpr env expr) of
+optimizeExpr outerEnv innerEnv (NotOp expr) =
+  case (optimizeExpr outerEnv innerEnv expr) of
     Right e -> Right (NotOp e)
     Left err -> Left err
-optimizeExpr env (BinOp op l r) =
-  case (optimizeExpr env l, optimizeExpr env r) of
+optimizeExpr outerEnv innerEnv (BinOp op l r) =
+  case (optimizeExpr outerEnv innerEnv l, optimizeExpr outerEnv innerEnv r) of
       (Right l', Right r') -> Right (BinOp op l' r')
       (Left err, _) -> Left err
       (_, Left err) -> Left err
+
+removeBValFromProgram :: Program -> Program
+removeBValFromProgram [] = []
+removeBValFromProgram (instr : rest) = (removeBValFromInstr instr) : (removeBValFromProgram rest)
+
+removeBValFromInstr :: Instr -> Instr
+removeBValFromInstr (Decl scope t name maybeExpr) =
+    case maybeExpr of
+        Nothing -> Decl scope t name Nothing
+        Just expr -> Decl scope t name (Just (removeBValFromExpr expr))
+removeBValFromInstr (Assign name expr) = Assign name (removeBValFromExpr expr)
+removeBValFromInstr (While expr prog) = While (removeBValFromExpr expr) prog
+removeBValFromInstr (IfElse expr thenProg elseProg) = IfElse (removeBValFromExpr expr) thenProg elseProg
+removeBValFromInstr (If expr prog) = If (removeBValFromExpr expr) prog
+removeBValFromInstr instr = instr
+
+removeBValFromExpr :: Expr -> Expr
+removeBValFromExpr (Val n) = Val n
+removeBValFromExpr (Var n) = Var n
+removeBValFromExpr (BVal True) = Val 1
+removeBValFromExpr (BVal False) = Val 0
+removeBValFromExpr (NotOp e) = NotOp (removeBValFromExpr e)
+removeBValFromExpr (BinOp op l r) = BinOp op (removeBValFromExpr l) (removeBValFromExpr r)
+
+tempProg :: Program
+tempProg = [Decl Shared TypeInt "x" (Just (Val 0)),Decl Local TypeInt "a" (Just (Val 1)),Print (Var "a"),If (BVal True) [Decl Local TypeInt "a" (Just (Val 2)),Print (Var "a")],Fork Nothing [Print (Var "x"),Decl Local TypeInt "a" (Just (Val 3)),Print (Var "a"),If (BVal True) [Decl Local TypeInt "a" (Just (Val 1)),Print (Var "a")]]]
