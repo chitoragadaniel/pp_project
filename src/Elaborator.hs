@@ -311,4 +311,3 @@ removeBValFromExpr (BVal True) = Val 1
 removeBValFromExpr (BVal False) = Val 0
 removeBValFromExpr (NotOp e) = NotOp (removeBValFromExpr e)
 removeBValFromExpr (BinOp op l r) = BinOp op (removeBValFromExpr l) (removeBValFromExpr r)
-

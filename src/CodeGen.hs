@@ -5,12 +5,15 @@ import Sprockell
 import Data.List
 
 runCode :: String -> IO ()
-runCode = run . codeGen . removeBValFromProgram . checkProgram . optimizeProgram . runParseProgram
+runCode = run . codeGen . removeBValFromProgram . checkProgram. elaborateProgram . runParseProgram
 
 runFile :: String -> IO ()
 runFile path = do
   code <- readFile path
   runCode code
+
+--main :: IO ()
+--main = runFile "banking-system"
 
 -- #####################################################################################################################
 -- #                                                   Code Generation                                                 #
@@ -77,7 +80,7 @@ instrGen d (Lock n) = [          TestAndSet (DirAddr i)                         
                                where (_,i) = getAddr n d                                  -- The scope is not needed, because all locks should be defined as shared
 instrGen d (Unlock n) = [ WriteInstr reg0 (DirAddr i)]                                    -- Write 0 to the address memory of the lock
   where (_,i) = getAddr n d                                                               -- The same as above
-instrGen _ _ = error "invalid instruction"                                                -- This pattern should never be reached. If it does, then something should be wrong in the Elaborator
+instrGen _ _ = error "invalid instruction:"                                               -- This pattern should never be reached. If it does, then something should be wrong in the Elaborator
 
 
 -- Generates the code of an expression, having as arguments the register where it should be stored, the dictionaries and the expression

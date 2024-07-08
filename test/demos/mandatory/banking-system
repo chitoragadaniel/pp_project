@@ -1,0 +1,39 @@
+shared int john = 1000
+shared int alex = 1000
+shared bool barrier
+shared lock l
+
+fork {
+  int transaction = 500
+  lock(l)
+  john = john - transaction
+  alex = alex + transaction
+  unlock(l)
+}
+fork {
+  int transaction = -200
+  lock(l)
+  john = john - transaction
+  alex = alex + transaction
+  unlock(l)
+}
+fork {
+  int transaction = 300
+  lock(l)
+  john = john - transaction
+  alex = alex + transaction
+  unlock(l)
+}
+fork {
+  int transaction = -600
+  lock(l)
+  john = john - transaction
+  alex = alex + transaction
+  barrier = true // code throws an error here
+  unlock(l)
+}
+
+while (not(barrier)) {}
+
+print(john)
+print(alex)

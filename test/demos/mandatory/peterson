@@ -1,0 +1,26 @@
+shared bool f0
+shared bool f1
+shared int turn
+shared int value = 10
+shared int barrier
+
+fork {
+ f0 = true
+ turn = 1
+ while (f1 and turn == 1) {}
+ value = value + 5
+ barrier = barrier+1
+ f0 = false
+}
+
+fork {
+ f1 = true
+ turn = 0
+ while (f0 and turn == 0) {}
+ barrier = barrier+1
+ value = value + 10
+ f1 = false
+}
+
+while (not(barrier == 2)) {}
+print(value)

@@ -66,11 +66,11 @@ main = hspec $ do
       it "Parses a program with comments" $ do
         testParseWithComment `shouldBe` Right [Decl Local TypeInt "x" (Just (Val 5)), Decl Local TypeInt "y" (Just (Val 6))]
       it "Does not parse a program with incomplete instructions" $ do
-        testParseErrorIncompleteInstr `shouldThrow` anyException
+        evaluate testParseErrorIncompleteInstr `shouldThrow` anyException
       it "Does not parse a program with incomplete expressions" $ do
-        testParseErrorIncompleteExpr `shouldThrow` anyException
+        evaluate testParseErrorIncompleteExpr `shouldThrow` anyException
       it "Does not parse a program with invalid input" $ do
-        testParseErrorInvalidInput `shouldThrow` anyException
+        evaluate testParseErrorInvalidInput `shouldThrow` anyException
   describe "Type Checking" $ do
     describe "Get types for variables" $ do
       it "Gets types for declared variable" $ do
@@ -128,7 +128,7 @@ main = hspec $ do
       it "Type checks print instructions" $ do
         testCheckInstrPrintError `shouldBe` Left "Variable x not found in scope."
       it "Type checks lock instructions" $ do
-        testCheckInstrLock `shouldBe` Expected: Right [("l", (Local, TypeLock))]
+        testCheckInstrLock `shouldBe` Right [("l", (Local, TypeLock))]
       it "Type checks lock instructions" $ do
         testCheckInstrLockError `shouldBe` Left "Type error in lock instruction to l"
       it "Type checks unlock instructions" $ do
@@ -170,7 +170,7 @@ main = hspec $ do
       it "Elaborates value expressions" $ do
         testElaborateExprVal `shouldBe` Right (Val 5)
       it "Elaborates boolean value expressions" $ do
-        testElaborateExprBValTrue `shouldBe`Right (BVaL True)
+        testElaborateExprBValTrue `shouldBe`Right (BVal True)
       it "Elaborates boolean value expressions" $ do
         testElaborateExprBValFalse `shouldBe` Right (BVal False)
       it "Elaborates variable expressions" $ do
@@ -187,7 +187,7 @@ main = hspec $ do
       it "Elaborates declaration instructions" $ do
         testElaborateInstrDecl `shouldBe` Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0, 1)
       it "Elaborates declaration instructions with value initialization" $ do
-        testElaborateInstrDeclInit = `shouldBe` Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0, 1)
+        testElaborateInstrDeclInit `shouldBe` Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0, 1)
       it "Elaborates assign instructions" $ do
         testElaborateInstrAssign `shouldBe` Right (Assign "$0" (Val 5), [("x", "$0")], 0, 1)
       it "Elaborates while instructions" $ do
@@ -245,7 +245,14 @@ main = hspec $ do
       it "Removes BVal from multiple instruction programs" $ do
         testRemoveBValFromProgramMultipleInstrs `shouldBe` [Decl Local TypeInt "x" (Just (Val 1)), Assign "x" (Val 0)]
   describe "Language (running code)" $ do
-    describe "legal code" $ do
+    describe "mandatory test programs" $ do
+      it "runs 4 transactions, one for each thread, and prints the result of those transactions" $ do
+        stdout <- capture_ $ runFile "./test/demos/mandatory/banking-system"
+        stdout `shouldBe` "Sprockell 0 says 1000\nSprockell 0 says 1000\n"
+      it "runs the Peterson's algorithm; in the critical section a variable is incremented" $ do
+        stdout <- capture_ $ runFile "./test/demos/mandatory/peterson"
+        stdout `shouldBe` "Sprockell 0 says 25\n"
+    describe "legal examples" $ do
       it "overshadows a variable and prints both of them" $ do
         stdout <- capture_ $ runFile "./test/demos/legal/p0"
         stdout `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 1\n"
@@ -273,7 +280,7 @@ main = hspec $ do
       it "spawns 2 threads that increment a=0 by 1 and b=0 by 2 using 2 locks for synchronization" $ do
         stdout <- capture_ $ runFile "./test/demos/legal/p8"
         stdout `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 4\n"
-    describe "illegal code" $ do
+    describe "illegal examples" $ do
       it "shows that a thread can't access local variables of other threads" $ do
         runFile "./test/demos/illegal/p0" `shouldThrow` anyException
       it "defines a local lock" $ do
@@ -879,7 +886,7 @@ testElaborateExprVal = elaborateExpr [] [] (Val 5)
 
 testElaborateExprBValTrue :: Either String Expr
 testElaborateExprBValTrue = elaborateExpr [] [] (BVal True)
--- expected: Right (BVaL True)
+-- expected: Right (BVal True)
 
 testElaborateExprBValFalse :: Either String Expr
 testElaborateExprBValFalse = elaborateExpr [] [](BVal False)
