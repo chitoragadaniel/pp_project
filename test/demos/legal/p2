@@ -1,6 +1,4 @@
 // If
 bool b = true
 if (b) {print(10)}
-print(10)
 if (not(b)) {print(0)}
-print(10)

@@ -5,7 +5,7 @@ import Sprockell
 import Data.List
 
 runCode :: String -> IO ()
-runCode = run . codeGen . optimizeProgram . checkProgram . runParseProgram
+runCode = run . codeGen . removeBValFromProgram . checkProgram . optimizeProgram . runParseProgram
 
 runFile :: String -> IO ()
 runFile path = do

@@ -2,5 +2,4 @@
 if (false) {print(0)}
 else {print(10)}
 if (true) {print(10)}
-else {print(10)}
-print(10)
+else {print(0)}

@@ -208,13 +208,34 @@ main = hspec $ do
 --      it "" $ do
 --        testOptimizeProgMultipleInstrs `shouldBe` Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)
   describe "Language (running code)" $ do
---    describe "legal code" $ do
---      it "overshadows a variable" $ do
---        stdout <- capture_ $ runFile "./test/demos/p2"
---        stdout `shouldBe` "Sprockell 0 says 2/nSprockell 0 says 1/n"
---      it "overshadows a variable" $ do
---        stdout <- capture_ $ runFile "./test/demos/p6"
---        stdout `shouldBe` "Sprockell 0 says 2/nSprockell 0 says 1/n"
+    describe "legal code" $ do
+      it "overshadows a variable and prints both of them" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p0"
+        stdout `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 1\n"
+      it "declare all type of legal variables" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p1"
+        stdout `shouldBe` "Sprockell 0 says 0\nSprockell 0 says 1\nSprockell 0 says 2\nSprockell 0 says 22\n"
+      it "tests running two if's; one with a true condition and one with a false one" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p2"
+        stdout `shouldBe` "Sprockell 0 says 10\n"
+      it "tests running two if with else; one with a true condition and one with a false one" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p3"
+        stdout `shouldBe` "Sprockell 0 says 10\nSprockell 0 says 10\n"
+      it "prints the values from 0 to 9 using while" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p4"
+        stdout `shouldBe` "Sprockell 0 says 0\nSprockell 0 says 1\nSprockell 0 says 2\nSprockell 0 says 3\nSprockell 0 says 4\nSprockell 0 says 5\nSprockell 0 says 6\nSprockell 0 says 7\nSprockell 0 says 8\nSprockell 0 says 9\n"
+      it "spawns 6 threads that try (not safely) to increment a shared variable of value 10" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p5"
+        stdout `shouldBe` "Sprockell 0 says 10\nSprockell 1 says 11\nSprockell 2 says 11\nSprockell 3 says 11\nSprockell 4 says 11\nSprockell 5 says 11\nSprockell 6 says 11\n"
+      it "spawns 6 threads increment safely a shared variable of value 10" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p6"
+        stdout `shouldBe` "Sprockell 0 says 10\nSprockell 1 says 11\nSprockell 2 says 12\nSprockell 3 says 13\nSprockell 4 says 14\nSprockell 5 says 15\nSprockell 6 says 16\n"
+--      it "spawns 2 threads (one being nested) and both increment a shared variable with initial value 0" $ do
+--        stdout <- capture_ $ runFile "./test/demos/legal/p7"
+--        stdout `shouldBe` "Sprockell 0 says 2\n"
+      it "spawns 2 threads that increment a=0 by 1 and b=0 by 2 using 2 locks for synchronization" $ do
+        stdout <- capture_ $ runFile "./test/demos/legal/p8"
+        stdout `shouldBe` "Sprockell 0 says 2\nSprockell 0 says 4\n"
     describe "illegal code" $ do
       it "shows that a thread can't access local variables of other threads" $ do
         runFile "./test/demos/illegal/p0" `shouldThrow` anyException
@@ -266,7 +287,7 @@ main = hspec $ do
         testExprGenNotOp `shouldBe` [Load (ImmValue 1) 2,Compute Equal 2 0 2]
       it "generates the code for a binary operation: i+10*11" $ do
         testExprGenBinOp `shouldBe` [Load (DirAddr 0) 2,Load (ImmValue 10) 3,Load (ImmValue 11) 4,Compute Mul 3 4 3,Compute Add 2 3 2]
-    describe "generating instructions" $ do -- add another print with an complicated expression
+    describe "running generated instructions" $ do -- add another print with an complicated expression
       it "prints the value 100" $ do
         stdout <- capture_ (run (codeGen [Print $ Val 100]))
         stdout `shouldBe` "Sprockell 0 says 100\n"
@@ -814,81 +835,81 @@ testLookupVarNameNotFound :: Either String String
 testLookupVarNameNotFound = lookupVarName "y" [("x", "$0")]
 -- expected: Left "Variable y not found"
 
--- Test cases for optimizeExpr
-testOptimizeExprVal :: Either String Expr
-testOptimizeExprVal = optimizeExpr [] (Val 5)
--- expected: Right (Val 5)
-
-testOptimizeExprBValTrue :: Either String Expr
-testOptimizeExprBValTrue = optimizeExpr [] (BVal True)
--- expected: Right (Val 1)
-
-testOptimizeExprBValFalse :: Either String Expr
-testOptimizeExprBValFalse = optimizeExpr [] (BVal False)
--- expected: Right (Val 0)
-
-testOptimizeExprVar :: Either String Expr
-testOptimizeExprVar = optimizeExpr [("x", "$0")] (Var "x")
--- expected: Right (Var "$0")
-
-testOptimizeExprNotOp :: Either String Expr
-testOptimizeExprNotOp = optimizeExpr [("x", "$0")] (NotOp (Var "x"))
--- expected: Right (NotOp (Var "$0"))
-
-testOptimizeExprBinOp :: Either String Expr
-testOptimizeExprBinOp = optimizeExpr [("x", "$0"), ("y", "$1")] (BinOp AddS (Var "x") (Var "y"))
--- expected: Right (BinOp AddS (Var "$0") (Var "$1"))
-
--- Test cases for optimizeInstr
-testOptimizeInstrDecl :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrDecl = optimizeInstr (Decl Local TypeInt "x" Nothing) [] 0
--- expected: Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
-
-testOptimizeInstrDeclInit :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrDeclInit = optimizeInstr (Decl Local TypeInt "x" (Just (Val 5))) [] 0
--- expected: Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
-
-testOptimizeInstrAssign :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrAssign = optimizeInstr (Assign "x" (Val 5)) [("x", "$0")] 0
--- expected: Right (Assign "$0" (Val 5), [("x", "$0")], 0)
-
-testOptimizeInstrWhile :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrWhile = optimizeInstr (While (BVal True) [Print (Var "x")]) [("x", "$0")] 0
--- expected: Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
-
-testOptimizeInstrIfElse :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrIfElse = optimizeInstr (IfElse (BVal True) [Print (Var "x")] [Print (Var "y")]) [("x", "$0"), ("y", "$1")] 0
--- expected: Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
-
-testOptimizeInstrIf :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrIf = optimizeInstr (If (BVal True) [Print (Var "x")]) [("x", "$0")] 0
--- expected: Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
-
-testOptimizeInstrPrint :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrPrint = optimizeInstr (Print (Var "x")) [("x", "$0")] 0
--- expected: Right (Print (Var "x1"), [("x", "$0")], 0)
-
-testOptimizeInstrFork :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrFork = optimizeInstr (Fork Nothing [Print (Var "x")]) [("x", "$0")] 0
--- expected: Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1)
-
-testOptimizeInstrLock :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrLock = optimizeInstr (Lock "x") [("x", "$0")] 0
--- expected: Right (Lock "$0", [("x", "$0")], 0)
-
-testOptimizeInstrUnlock :: Either String (Instr, VarEnv, Int)
-testOptimizeInstrUnlock = optimizeInstr (Unlock "x") [("x", "$0")] 0
--- expected: Right (Unlock "$0", [("x", "$0")], 0)
-
--- Test cases for optimizeProg
-testOptimizeProgEmpty ::Either String (Program, Int)
-testOptimizeProgEmpty = optimizeProg [] [] 0
--- expected: Right ([], 0)
-
-testOptimizeProgSingleDecl :: Either String (Program, Int)
-testOptimizeProgSingleDecl = optimizeProg [Decl Local TypeInt "x" Nothing] [] 0
--- expected: Right ([Decl Local TypeInt "$0" Nothing], 0)
-
-testOptimizeProgMultipleInstrs :: Either String (Program, Int)
-testOptimizeProgMultipleInstrs = optimizeProg [Decl Local TypeInt "x" (Just (Val 5)), Assign "x" (Val 10)] [] 0
--- expected: Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)
+---- Test cases for optimizeExpr
+--testOptimizeExprVal :: Either String Expr
+--testOptimizeExprVal = optimizeExpr [] (Val 5)
+---- expected: Right (Val 5)
+--
+--testOptimizeExprBValTrue :: Either String Expr
+--testOptimizeExprBValTrue = optimizeExpr [] (BVal True)
+---- expected: Right (Val 1)
+--
+--testOptimizeExprBValFalse :: Either String Expr
+--testOptimizeExprBValFalse = optimizeExpr [] (BVal False)
+---- expected: Right (Val 0)
+--
+--testOptimizeExprVar :: Either String Expr
+--testOptimizeExprVar = optimizeExpr [("x", "$0")] (Var "x")
+---- expected: Right (Var "$0")
+--
+--testOptimizeExprNotOp :: Either String Expr
+--testOptimizeExprNotOp = optimizeExpr [("x", "$0")] (NotOp (Var "x"))
+---- expected: Right (NotOp (Var "$0"))
+--
+--testOptimizeExprBinOp :: Either String Expr
+--testOptimizeExprBinOp = optimizeExpr [("x", "$0"), ("y", "$1")] (BinOp AddS (Var "x") (Var "y"))
+---- expected: Right (BinOp AddS (Var "$0") (Var "$1"))
+--
+---- Test cases for optimizeInstr
+--testOptimizeInstrDecl :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrDecl = optimizeInstr (Decl Local TypeInt "x" Nothing) [] 0
+---- expected: Right (Decl Local TypeInt "$0" Nothing, [("x", "$0")], 0)
+--
+--testOptimizeInstrDeclInit :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrDeclInit = optimizeInstr (Decl Local TypeInt "x" (Just (Val 5))) [] 0
+---- expected: Right (Decl Local TypeInt "$0" (Just (Val 5)), [("x", "$0")], 0)
+--
+--testOptimizeInstrAssign :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrAssign = optimizeInstr (Assign "x" (Val 5)) [("x", "$0")] 0
+---- expected: Right (Assign "$0" (Val 5), [("x", "$0")], 0)
+--
+--testOptimizeInstrWhile :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrWhile = optimizeInstr (While (BVal True) [Print (Var "x")]) [("x", "$0")] 0
+---- expected: Right (While (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
+--
+--testOptimizeInstrIfElse :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrIfElse = optimizeInstr (IfElse (BVal True) [Print (Var "x")] [Print (Var "y")]) [("x", "$0"), ("y", "$1")] 0
+---- expected: Right (IfElse (Val 1) [Print (Var "x1")] [Print (Var "y1")], [("x", "x1"), ("y", "y1")], 0)
+--
+--testOptimizeInstrIf :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrIf = optimizeInstr (If (BVal True) [Print (Var "x")]) [("x", "$0")] 0
+---- expected: Right (If (Val 1) [Print (Var "$0")], [("x", "$0")], 0)
+--
+--testOptimizeInstrPrint :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrPrint = optimizeInstr (Print (Var "x")) [("x", "$0")] 0
+---- expected: Right (Print (Var "x1"), [("x", "$0")], 0)
+--
+--testOptimizeInstrFork :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrFork = optimizeInstr (Fork Nothing [Print (Var "x")]) [("x", "$0")] 0
+---- expected: Right (Fork (Just 0) [Print (Var "$0")], [("x", "$0")], 1)
+--
+--testOptimizeInstrLock :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrLock = optimizeInstr (Lock "x") [("x", "$0")] 0
+---- expected: Right (Lock "$0", [("x", "$0")], 0)
+--
+--testOptimizeInstrUnlock :: Either String (Instr, VarEnv, Int)
+--testOptimizeInstrUnlock = optimizeInstr (Unlock "x") [("x", "$0")] 0
+---- expected: Right (Unlock "$0", [("x", "$0")], 0)
+--
+---- Test cases for optimizeProg
+--testOptimizeProgEmpty ::Either String (Program, Int)
+--testOptimizeProgEmpty = optimizeProg [] [] 0
+---- expected: Right ([], 0)
+--
+--testOptimizeProgSingleDecl :: Either String (Program, Int)
+--testOptimizeProgSingleDecl = optimizeProg [Decl Local TypeInt "x" Nothing] [] 0
+---- expected: Right ([Decl Local TypeInt "$0" Nothing], 0)
+--
+--testOptimizeProgMultipleInstrs :: Either String (Program, Int)
+--testOptimizeProgMultipleInstrs = optimizeProg [Decl Local TypeInt "x" (Just (Val 5)), Assign "x" (Val 10)] [] 0
+---- expected: Right ([Decl Local TypeInt "$0" (Just (Val 5)), Assign "$0" (Val 10)], 0)

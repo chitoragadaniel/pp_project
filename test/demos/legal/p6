@@ -1,18 +1,40 @@
-// Not thread safe example
+// Thread safe
 shared int a = 10
+shared lock l
+print(a)
 fork {
+  lock(l)
   a = a + 1
   print(a)
+  unlock(l)
 }
 fork {
+  lock(l)
   a = a + 1
   print(a)
+  unlock(l)
 }
 fork {
+  lock(l)
   a = a + 1
   print(a)
+  unlock(l)
 }
 fork {
+  lock(l)
   a = a + 1
   print(a)
+  unlock(l)
+}
+fork {
+  lock(l)
+  a = a + 1
+  print(a)
+  unlock(l)
+}
+fork {
+  lock(l)
+  a = a + 1
+  print(a)
+  unlock(l)
 }

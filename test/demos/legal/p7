@@ -1,5 +1,7 @@
 // Nested thread shared int sum
-int i = 10
+shared int sum
+int i = 1
+sum = sum + i
 fork {
   int i = 1
   sum = sum + i
