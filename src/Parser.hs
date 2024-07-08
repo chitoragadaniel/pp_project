@@ -1,8 +1,11 @@
 module Parser where
+
+-- Import Parsec library and its components
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
+-- Define the language features and rules for the lexer
 languageDef =
   emptyDef { Token.commentLine      = "//"
            , Token.identStart       = letter
@@ -11,8 +14,10 @@ languageDef =
            , Token.reservedOpNames  = [ "=", "+", "-", "*", "^", "==", "<", "<=", "and", "or", "not"]
            }
 
+-- Create a lexer based on the language definition
 lexer = Token.makeTokenParser languageDef
 
+-- Define parsers for different components using the lexer
 identifier :: Parser String
 identifier = Token.identifier lexer
 
@@ -37,22 +42,23 @@ symbol = Token.symbol lexer
 whiteSpace :: Parser ()
 whiteSpace = Token.whiteSpace lexer
 
+-- Define the data types for the program and instructions
 type Program  = [Instr]
-data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Local: int i = 0; Shared: shared int i = o;
+data Instr    = Decl Scope Type String (Maybe Expr)   -- Declare a variable; Local: int i = 0; Shared: shared int i = 0;
               | Assign String Expr                    -- Assign a value to a variable; i = 0
-              | While Expr Program
-              | IfElse Expr Program Program
-              | If Expr Program
-              | Print Expr
-              | Fork (Maybe Int) Program                -- Starts a new thread; fork {}; (Maybe Int) is the number of the thread. While parsing is Nothing, in elaboration is counted
-              | Lock String                             -- Locks a lock; lock(i)
-              | Unlock String                           -- Unlocks a lock; unlock(i)
+              | While Expr Program                    -- While loop
+              | IfElse Expr Program Program           -- If-else statement
+              | If Expr Program                       -- If statement
+              | Print Expr                            -- Print statement
+              | Fork (Maybe Int) Program              -- Starts a new thread; fork {}; (Maybe Int) is the number of the thread. While parsing is Nothing, in elaboration is counted
+              | Lock String                           -- Locks a lock; lock(i)
+              | Unlock String                         -- Unlocks a lock; unlock(i)
               deriving (Show, Eq)
-              
-data Expr     = BinOp Op Expr Expr
-              | NotOp Expr
+
+data Expr     = BinOp Op Expr Expr                    -- Binary operation
+              | NotOp Expr                            -- Not operation
               | Val Int                               -- A integer
-              | BVal Bool                             -- boolean value
+              | BVal Bool                             -- Boolean value
               | Var String                            -- Using a variable
               deriving (Show, Eq)
 
@@ -64,7 +70,7 @@ data Op = AddS | SubS | MultS                         -- Integer operators
 data Type = TypeInt | TypeBool | TypeLock deriving (Show, Eq)
 data Scope = Local | Shared deriving (Show, Eq)
 
--- Parser for a program
+-- Parser for a program (sequence of instructions)
 parseProgram :: Parser Program
 parseProgram = whiteSpace *> many parseInstr <* eof
 
@@ -91,32 +97,40 @@ parseInstr = try (Decl <$> parseScope
            <|> try (Lock <$> (reserved "lock" *>  (parens identifier)))
            <|> (Unlock <$> (reserved "unlock" *> (parens identifier)))
 
+-- Parser for an expression
 parseExpr :: Parser Expr
 parseExpr = parseOrExpr
 
+-- Parser for an 'or' expression
 parseOrExpr :: Parser Expr
 parseOrExpr = try (binOp <$> parseAndExpr <*> parseOrOp <*> parseOrExpr)
           <|> parseAndExpr
 
+-- Parser for an 'and' expression
 parseAndExpr :: Parser Expr
 parseAndExpr = try (binOp <$> parseComparisonExpr <*> parseAndOp <*> parseAndExpr)
            <|> parseComparisonExpr
 
+-- Parser for a comparison expression
 parseComparisonExpr :: Parser Expr
 parseComparisonExpr = try (binOp <$> parseAddSubExpr <*> parseComparisonOp <*> parseMultExpr)
                   <|> parseAddSubExpr
 
+-- Parser for an addition or subtraction expression
 parseAddSubExpr :: Parser Expr
 parseAddSubExpr = try (binOp <$> parseMultExpr <*> parseAddSubOp <*> parseAddSubExpr)
               <|> parseMultExpr
 
+-- Parser for a multiplication expression
 parseMultExpr :: Parser Expr
 parseMultExpr = try (binOp <$> parseUnaryExpr <*> parseMultOp <*> parseMultExpr)
             <|> parseUnaryExpr
 
+-- Parser for a unary expression (not operation or term)
 parseUnaryExpr :: Parser Expr
 parseUnaryExpr = try (NotOp <$> (reserved "not" *> parseUnaryExpr)) <|> parseTerm
 
+-- Parser for a term (parenthesized expression, integer value, boolean value, or variable)
 parseTerm :: Parser Expr
 parseTerm = try (parens parseExpr)
         <|> try (Val <$> integer)
@@ -154,11 +168,11 @@ parseScope :: Parser Scope
 parseScope = try (reserved "shared" >> pure Shared)
           <|> pure Local
 
--- Helper function that takes an expression an operator and another expression and constructs a new expression.
+-- Helper function that takes an expression, an operator, and another expression, and constructs a new expression.
 binOp :: Expr -> Op -> Expr -> Expr
 binOp left operator right = BinOp operator left right
 
--- Function that takes input string and parses it to a program
+-- Function that takes an input string and parses it to a program
 runParseProgram :: String -> Program
 runParseProgram input =
   case (parse parseProgram "" input) of
