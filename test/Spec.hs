@@ -98,7 +98,7 @@ main = hspec $ do
             runFile "./test/demos/illegal/semantic1" `shouldThrow` anyException
           it "local memory overflow" $ do
             runFile "./test/demos/illegal/semantic2" `shouldThrow` anyException
-  
+
   describe "Unit tests" $ do
     describe "Parsing" $ do
       describe "Parses Types" $ do
@@ -160,7 +160,7 @@ main = hspec $ do
           evaluate testParseErrorIncompleteExpr `shouldThrow` anyException
         it "Does not parse a program with invalid input" $ do
           evaluate testParseErrorInvalidInput `shouldThrow` anyException
-    
+
     describe "Type Checking" $ do
       describe "Get types for variables" $ do
         it "Gets types for declared variable" $ do
@@ -177,7 +177,7 @@ main = hspec $ do
         it "Infers type of unary expressions" $ do
           testInferExprTypeNotOp `shouldBe` Right TypeBool
         it "Does not Infer type of incorrect unary expressions" $ do
-          testInferExprTypeNotOpError `shouldBe` Left "Type error cannot use unary on expr Var \"x\""
+          testInferExprTypeNotOpError `shouldBe` Left "Type error: cannot use unary NOT on expr Var \"x\""
         it "Infers type of Binary operation expressions" $ do
           testInferExprTypeBinOpAdd `shouldBe` Right TypeInt
         it "Does not infer types of mismatched binary operations" $ do
@@ -250,7 +250,7 @@ main = hspec $ do
           testCheckProgramError_8 `shouldBe` Left "Variable a not found in scope"
         it "Type checks illegal programs" $ do
           testCheckProgramError_9 `shouldBe` Left "Variable a not found in scope"
-    
+
     describe "Program Elaborations" $ do
       describe "Gets updated variabled names" $ do
         it "Gets the update variable name when variable is declared" $ do
@@ -335,7 +335,7 @@ main = hspec $ do
           testRemoveBValFromProgramSingleInstr `shouldBe`[Assign "x" (Val 1)]
         it "Removes BVal from multiple instruction programs" $ do
           testRemoveBValFromProgramMultipleInstrs `shouldBe` [Decl Local TypeBool "x" (Just (Val 1)), Assign "x" (Val 0)]
-    
+
     describe "Code generation" $ do
       describe "dictionaries" $ do
         it "gets the local dictionary of a thread" $ do
