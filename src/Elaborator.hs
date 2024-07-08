@@ -226,9 +226,9 @@ optimizeInstr (While expr prog) outerEnv innerEnv fc vc =
         (_, Left err) -> Left err
 optimizeInstr (IfElse expr thenProg elseProg) outerEnv innerEnv fc vc =
     case (optimizeExpr outerEnv innerEnv expr, optimizeProg thenProg (outerEnv ++ innerEnv) [] fc vc) of
-        (Right expr', Right (elseProg', fc', vc')) ->
-            case (optimizeProg thenProg (outerEnv ++ innerEnv) [] fc' vc') of
-                Right (thenProg', fc'', vc'') -> Right (IfElse expr' thenProg' elseProg', innerEnv, fc'', vc'')
+        (Right expr', Right (thenProg', fc', vc')) ->
+            case (optimizeProg elseProg (outerEnv ++ innerEnv) [] fc' vc') of
+                Right (elseProg', fc'', vc'') -> Right (IfElse expr' thenProg' elseProg', innerEnv, fc'', vc'')
                 Left err -> Left err
         (Left err, _) -> Left err
         (_, Left err) -> Left err
